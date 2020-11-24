@@ -3,9 +3,11 @@
 
 USING: accessors arrays assocs classes.algebra combinators
 combinators.short-circuit definitions effects effects.parser fry
-generalizations kernel lexer locals make make.private math
-math.order namespaces parser prettyprint quotations sequences
-sequences.generalizations sets splitting words ;
+generalizations help.markup help.private help.topics kernel
+lexer locals make make.private math math.order namespaces parser
+prettyprint prettyprint.backend prettyprint.custom quotations
+see see.private sequences sequences.generalizations sets
+splitting words ;
 FROM: namespaces => set ;
 IN: mm
 
@@ -168,7 +170,7 @@ M: mm-generic forget*
 
 : define-generic ( word effect hooks -- )
     [ over swap set-stack-effect ] dip
-    ! If hooks is already set to something, then
+    ! If hooks is already set to something, then        <--- "multi-methods"?
     ! method-list and multi-methods need to be modified
     dupd "hooks" set-word-prop
     dup "multi-methods" word-prop [ drop ] [
@@ -229,8 +231,7 @@ M: mm-generic forget*
     effect parse-variable-effect :> ( eff vars )
     eff in>> [
         dup array? [
-            second dup effect?
-            [ drop callable ] when
+            second dup effect? [ drop callable ] when
         ] [ parse-word ] if
     ] map
     generic "hooks" word-prop vars correlate
@@ -251,5 +252,45 @@ SYNTAX: MGENERIC:
     scan-effect parse-variable-effect
     define-generic ;
 
+M: mm-generic definer drop \ MGENERIC: f ;
+
+M: mm-generic definition drop f ;
+
+M: mm-generic synopsis*
+    {
+        [ seeing-word ]
+        [ definer. ]
+        [ pprint-word ]
+        [ generic-stack-effect pprint-effect ]
+    } cleave ;
+
 SYNTAX: MM: (MM:) define ;
 
+M: mm-body synopsis*
+    dup definer.
+    [ "multi-method-generic" word-prop pprint-word ]
+    [ "multi-method-effect" word-prop pprint-effect ] bi ;
+
+M: mm-body definer
+    drop \ MM: \ ; ;
+
+SYNTAX: MM\
+    scan-word dup scan-effect effect>specializer
+    swap method <wrapper> suffix! ;
+
+: $methods ( element -- )
+    first methods values
+    [ "Methods" $heading [ see-all ] ($see) ] unless-empty ;
+
+: word-with-methods ( word -- elements )
+    [
+        [ (word-help) % ]
+        [ \ $methods swap 2array , ] bi
+    ] { } make ;
+
+M: mm-generic article-content word-with-methods ;
+
+M: mm-body pprint*
+    \ MM\ pprint-word
+    [ "multi-method-generic" word-prop pprint-word ]
+    [ "multi-method-effect" word-prop pprint-effect ] bi ;
