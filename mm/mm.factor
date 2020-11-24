@@ -9,8 +9,6 @@ sequences.generalizations sets splitting words ;
 FROM: namespaces => set ;
 IN: mm
 
-SINGLETON: D
-
 ! Dropping hook variables before method calls
 : prepare-method ( method n -- quot )
     swap '[ _ ndrop _ execute ] ;
@@ -241,7 +239,14 @@ M: mm-generic forget*
 : CREATE-METHOD ( -- method )
     scan-word scan-effect
     [ dupd effect>specializer swap create-method-in ] keep
-    dupd "declared-effect" set-word-prop ;
+    dupd 2dup
+    [ "multi-method-effect" set-word-prop ]
+    [ parse-variable-effect drop "declared-effect" set-word-prop ]
+    2bi* ;
+
+!    dupd "declared-effect" set-word-prop ;
+
+
 
 : (MM:) ( -- method def ) CREATE-METHOD parse-definition ;
 

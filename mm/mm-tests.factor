@@ -1,6 +1,6 @@
 
-USING: combinators formatting kernel math mm prettyprint
-sequences tools.time ;
+USING: combinators formatting kernel math mm namespaces
+prettyprint sequences tools.time ;
 
 IN: mm.tests
 
@@ -20,6 +20,19 @@ MM: md-beats? ( obj1: rock obj2: paper -- ? ) 2drop t ;
 MM: md-beats? ( obj1: thing obj2: thing -- ? ) 2drop f ;
 
 : md-play ( obj1 obj2 -- ? ) md-beats? ;
+
+
+! multi-hook-dispatch
+SYMBOLS: thing1 thing2 ;
+
+MGENERIC: mhd-beats? ( thing1 thing2 | -- ? )
+
+MM: mhd-beats? ( thing1: paper thing2: scissors | -- ? ) t ; 
+MM: mhd-beats? ( thing1: scissors thing2: rock | -- ? ) t ; 
+MM: mhd-beats? ( thing1: rock thing2: paper | -- ? ) t ; 
+MM: mhd-beats? ( thing1: thing thing2: thing | -- ? ) f ; 
+
+: mhd-play ( -- ? ) mhd-beats? ;
 
 
 ! sigle-dispach
@@ -76,10 +89,28 @@ TIMES [
         rock scissors     md-play drop
         rock rock         md-play drop
     ] times
-] benchmark 1.0e9 / "multi-dispatch:  %.6f seconds\n" printf
+] benchmark 1.0e9 / "multi-dispatch:       %.6f seconds\n" printf
 
 [
+    TIMES [
+        paper    thing1 set 
+        paper    thing2 set mhd-play drop
+        scissors thing2 set mhd-play drop
+        rock     thing2 set mhd-play drop
+        
+        scissors thing1 set 
+        paper    thing2 set mhd-play drop
+        scissors thing2 set mhd-play drop
+        rock     thing2 set mhd-play drop
+        
+        rock     thing1 set 
+        paper    thing2 set mhd-play drop
+        scissors thing2 set mhd-play drop
+        rock     thing2 set mhd-play drop
+    ] times
+] benchmark 1.0e9 / "multi-hook-dispatch:  %.6f seconds\n" printf
 
+[
     TIMES [
         paper paper       sd-play drop
         paper scissors    sd-play drop
@@ -93,11 +124,9 @@ TIMES [
         rock scissors     sd-play drop
         rock rock         sd-play drop
     ] times
-] benchmark 1.0e9 / "single-dispatch: %.6f seconds\n" printf
-
+] benchmark 1.0e9 / "single-dispatch:      %.6f seconds\n" printf
 
 [
-
     TIMES [
         paper paper       play drop
         paper scissors    play drop
@@ -111,7 +140,7 @@ TIMES [
         rock scissors     play drop
         rock rock         play drop
     ] times
-] benchmark 1.0e9 / "no-dispatch:     %.6f seconds\n" printf
+] benchmark 1.0e9 / "no-dispatch:          %.6f seconds\n" printf
 
 
 
