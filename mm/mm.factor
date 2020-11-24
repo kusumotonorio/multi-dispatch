@@ -244,10 +244,6 @@ M: mm-generic forget*
     [ parse-variable-effect drop "declared-effect" set-word-prop ]
     2bi* ;
 
-!    dupd "declared-effect" set-word-prop ;
-
-
-
 : (MM:) ( -- method def ) CREATE-METHOD parse-definition ;
 
 SYNTAX: MGENERIC:
@@ -256,8 +252,4 @@ SYNTAX: MGENERIC:
     define-generic ;
 
 SYNTAX: MM: (MM:) define ;
-
-
-
-
 
