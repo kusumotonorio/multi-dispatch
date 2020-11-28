@@ -94,6 +94,16 @@ MACRO:: dispatch ( hooks effect default -- quot )
     } cleave
     '[ _ _ _ _ dispatch ] ;
 
+: make-generic2 ( generic -- quot )
+    {
+        [ methods ]
+        [ "hooks" word-prop ]
+        [ stack-effect ]
+        [ make-default-method ]
+    } cleave
+    '[ _ _ _ _ dispatch ] ;
+
+
 : update-generic ( word -- )
     dup make-generic define ;
 
@@ -157,20 +167,9 @@ ERROR: extra-hooks ;
     [ [ delete-at ] with-methods ]
     2bi ;
 
-M: mm-body forget*
-    [
-        "multi-method-specializer" "multi-method-generic"
-        [ word-prop ] bi-curry@ bi forget-method ] 
-    [ call-next-method ]
-    bi ;
-
-M: mm-generic forget*
-    [ methods values [ forget ] each ] [ call-next-method ] bi ;
-
-
 : define-generic ( word effect hooks -- )
     [ over swap set-stack-effect ] dip
-    ! If hooks is already set to something, then        <--- "multi-methods"?
+    ! If hooks is already set to something, then
     ! method-list and multi-methods need to be modified
     dupd "hooks" set-word-prop
     dup "multi-methods" word-prop [ drop ] [
@@ -204,23 +203,6 @@ M: mm-generic forget*
         bi :> ( in out hooks )
         hooks [ in ] [ { "|" } in 3append ] if-empty out <effect> ;
 
-! : parse-variable-effect ( effect -- effect' variables )
-!     [ in>> ] 
-!     [ out>> { "|" } split1 ] bi
-!     [ <effect> ] [
-!         [
-!             dup array?
-!             [ first2 [ parse-word ] dip 2array ]
-!             [ parse-word ] if
-!         ] map
-!     ] bi* ;
-
-! : generic-stack-effect ( generic -- effect )
-!     [ stack-effect [ in>> ] [ out>> ] bi ]
-!     [ "multi-hooks" word-prop ]
-!     bi
-!     [ { "|" } swap 3append ] unless-empty <effect> ;
-
 : create-method-in ( specializer generic -- method )
     create-method dup save-location f set-last-word ;
 
@@ -242,7 +224,7 @@ M: mm-generic forget*
     [ dupd effect>specializer swap create-method-in ] keep
     dupd 2dup
     [ "multi-method-effect" set-word-prop ]
-    [ parse-variable-effect drop "declared-effect" set-word-prop ]
+    [ parse-variable-effect drop dup . "declared-effect" set-word-prop ]
     2bi* ;
 
 : (MM:) ( -- method def ) CREATE-METHOD parse-definition ;
@@ -251,6 +233,9 @@ SYNTAX: MGENERIC:
     scan-token create-word-in
     scan-effect parse-variable-effect
     define-generic ;
+
+SYNTAX: MM: (MM:) define ;
+
 
 M: mm-generic definer drop \ MGENERIC: f ;
 
@@ -264,15 +249,25 @@ M: mm-generic synopsis*
         [ generic-stack-effect pprint-effect ]
     } cleave ;
 
-SYNTAX: MM: (MM:) define ;
+M: mm-generic forget*
+    [ methods values [ forget ] each ] [ call-next-method ] bi ;
+
+M: mm-generic article-content word-with-methods ;
+
+M: mm-body definer
+    drop \ MM: \ ; ;
 
 M: mm-body synopsis*
     dup definer.
     [ "multi-method-generic" word-prop pprint-word ]
     [ "multi-method-effect" word-prop pprint-effect ] bi ;
 
-M: mm-body definer
-    drop \ MM: \ ; ;
+M: mm-body forget*
+    [
+        "multi-method-specializer" "multi-method-generic"
+        [ word-prop ] bi-curry@ bi forget-method ] 
+    [ call-next-method ]
+    bi ;
 
 SYNTAX: MM\
     scan-word dup scan-effect effect>specializer
@@ -288,9 +283,8 @@ SYNTAX: MM\
         [ \ $methods swap 2array , ] bi
     ] { } make ;
 
-M: mm-generic article-content word-with-methods ;
-
 M: mm-body pprint*
     \ MM\ pprint-word
     [ "multi-method-generic" word-prop pprint-word ]
     [ "multi-method-effect" word-prop pprint-effect ] bi ;
+

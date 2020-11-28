@@ -1,7 +1,6 @@
-
-USING: combinators formatting kernel math memory mm namespaces
+USING: combinators formatting kernel math memory mm3 namespaces
 prettyprint sequences tools.test tools.time ;
-IN: mm.tests
+IN: mm3.tests
 
 MIXIN: thing
 
@@ -260,5 +259,4 @@ gc
 ] benchmark
 [ 1.0e9 / ] [ no-dispatch-time get / ] bi
 "multi-hook-dispatch:  %.6f seconds (%.2f times slower)\n" printf
-
 
