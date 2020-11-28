@@ -94,16 +94,6 @@ MACRO:: dispatch ( hooks effect default -- quot )
     } cleave
     '[ _ _ _ _ dispatch ] ;
 
-: make-generic2 ( generic -- quot )
-    {
-        [ methods ]
-        [ "hooks" word-prop ]
-        [ stack-effect ]
-        [ make-default-method ]
-    } cleave
-    '[ _ _ _ _ dispatch ] ;
-
-
 : update-generic ( word -- )
     dup make-generic define ;
 
@@ -224,7 +214,7 @@ ERROR: extra-hooks ;
     [ dupd effect>specializer swap create-method-in ] keep
     dupd 2dup
     [ "multi-method-effect" set-word-prop ]
-    [ parse-variable-effect drop dup . "declared-effect" set-word-prop ]
+    [ parse-variable-effect drop "declared-effect" set-word-prop ]
     2bi* ;
 
 : (MM:) ( -- method def ) CREATE-METHOD parse-definition ;
