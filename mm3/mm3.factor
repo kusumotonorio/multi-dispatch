@@ -189,8 +189,7 @@ PREDICATE: generic < word
     ] [ ] make ;
 
 : update-generic ( word -- )
-    dup make-generic 
-    over H{ } clone "method-cache" set-word-prop
+    dup make-generic
     define ;
 
 ! Methods
