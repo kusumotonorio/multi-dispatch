@@ -39,11 +39,10 @@ MM: md-beats? ( :thing :thing -- ? ) 2drop f ;
 ! multi-hook-dispatch
 MGENERIC: mhd-beats? ( thing1 thing2 | -- ? )
 
-! MM: mhd-beats? ( thing1: paper thing2: scissors | -- ? ) t ; 
-MM: mhd-beats? ( thing2: scissors thing1: paper | -- ? ) t ; 
+MM: mhd-beats? ( thing1: paper thing2: scissors | -- ? ) t ; 
 MM: mhd-beats? ( thing1: scissors thing2: rock | -- ? ) t ; 
 MM: mhd-beats? ( thing1: rock thing2: paper | -- ? ) t ; 
-MM: mhd-beats? ( thing1: thing thing2: thing | -- ? ) f ; 
+MM: mhd-beats? ( thing1: thing thing2: thing | -- ? ) f ;
 
 : mhd-play ( -- ? ) mhd-beats? ;
 
