@@ -12,12 +12,12 @@ SYMBOLS: thing1 thing2 ;
 
 
 ! multi-dispatch
-MGENERIC: md-beats? ( obj1 obj2 -- ? )
+MGENERIC: md-beats? ( thing-1 thing-2 -- ? )
 
-MM: md-beats? ( obj1: paper obj2: scissors -- ? ) 2drop t ;
-MM: md-beats? ( scissors rock -- ? ) 2drop t ;
-MM: md-beats? ( rock paper -- ? ) 2drop t ;
-MM: md-beats? ( thing thing -- ? ) 2drop f ;
+MM: md-beats? ( :paper :scissors -- ? ) 2drop t ;
+MM: md-beats? ( :scissors :rock -- ? ) 2drop t ;
+MM: md-beats? ( :rock :paper -- ? ) 2drop t ;
+MM: md-beats? ( :thing :thing -- ? ) 2drop f ;
 
 : md-play ( obj1 obj2 -- ? ) md-beats? ;
 
@@ -39,7 +39,8 @@ MM: md-beats? ( thing thing -- ? ) 2drop f ;
 ! multi-hook-dispatch
 MGENERIC: mhd-beats? ( thing1 thing2 | -- ? )
 
-MM: mhd-beats? ( thing1: paper thing2: scissors | -- ? ) t ; 
+! MM: mhd-beats? ( thing1: paper thing2: scissors | -- ? ) t ; 
+MM: mhd-beats? ( thing2: scissors thing1: paper | -- ? ) t ; 
 MM: mhd-beats? ( thing1: scissors thing2: rock | -- ? ) t ; 
 MM: mhd-beats? ( thing1: rock thing2: paper | -- ? ) t ; 
 MM: mhd-beats? ( thing1: thing thing2: thing | -- ? ) f ; 
@@ -259,4 +260,3 @@ gc
 ] benchmark
 [ 1.0e9 / ] [ no-dispatch-time get / ] bi
 "multi-hook-dispatch:  %.6f seconds (%.2f times slower)\n" printf
-

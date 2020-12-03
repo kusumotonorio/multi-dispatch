@@ -10,7 +10,6 @@ splitting vectors words ;
 FROM: namespaces => set ;
 IN: mm3
 
-! for my syntax
 : parse-variable-effect ( effect -- effect' hooks )
     [ 
         in>> { "|" } split1 [ 
@@ -37,12 +36,14 @@ IN: mm3
 : correlate ( seq assoc -- seq' )
     '[ _ at object or ] map ;
 
-:: effect>specializer ( generic effect -- specializer )
+:: effect>specializer ( effect -- specializer )
     effect parse-variable-effect :> ( eff vars )
     eff in>> [
         dup array? [
             second dup effect? [ drop callable ] when
-        ] [ parse-word ] if
+        ] [
+            dup first ":" = [ rest parse-word ] [ drop object ] if
+        ] if 
     ] map
     vars append ;
 
@@ -167,7 +168,11 @@ ERROR: no-method arguments generic ;
 
 : multi-dispatch-quot ( methods generic -- quot )
     [ make-default-method ]
-    [ drop [ [ multi-predicate ] dip ] assoc-map reverse! ]
+    [
+        drop 
+        [
+            [ multi-predicate ] dip
+        ] assoc-map reverse! ]
     2bi alist>quot ;
 
 ! Generic words
@@ -179,14 +184,14 @@ PREDICATE: generic < word
 
 : make-generic ( generic -- quot )
     [
-        [ methods 
-          prepare-methods 
-          % sort-methods ] keep
+        [ methods prepare-methods % sort-methods ] keep
         multi-dispatch-quot %
     ] [ ] make ;
 
 : update-generic ( word -- )
-    dup make-generic define ;
+    dup make-generic 
+    over H{ } clone "method-cache" set-word-prop
+    define ;
 
 ! Methods
 PREDICATE: method-body < word
@@ -272,7 +277,7 @@ SYNTAX: MGENERIC: scan-new-word scan-effect
     create-method dup save-location f set-last-word ;
 
 : scan-new-method ( -- method )
-    scan-word dup scan-effect effect>specializer swap create-method-in ;
+    scan-word scan-effect effect>specializer swap create-method-in ;
 
 : (MM:) ( -- method def ) scan-new-method parse-definition ;
 
