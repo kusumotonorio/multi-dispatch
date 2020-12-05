@@ -42,8 +42,8 @@ IN: mm3
         dup array? [
             second dup effect? [ drop callable ] when
         ] [
-            dup first ":" = [ rest parse-word ] [ drop object ] if
-        ] if 
+            drop object
+        ] if
     ] map
     vars append ;
 
@@ -285,7 +285,7 @@ SYNTAX: MM: (MM:) define ;
 
 ! Definition protocol. We qualify core generics here
 
-M: generic definer drop \ GENERIC: f ;
+M: generic definer drop \ MGENERIC: f ;
 
 M: generic definition drop f ;
 
