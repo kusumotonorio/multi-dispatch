@@ -5,3 +5,6 @@ I've taken from the [@littledan 's repository](https://github.com/littledan/Fact
 
 ### mm3
 Syntax of [`multi-methods`](https://github.com/factor/factor/tree/master/extra/multi-methods) to be the same as mm
+
+### mm5
+Dispatching with Caching
