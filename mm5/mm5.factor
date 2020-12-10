@@ -162,27 +162,18 @@ ERROR: no-method arguments generic ;
 : make-default-method ( methods generic -- quot )
     [ argument-count ] dip [ [ narray ] dip no-method ] 2curry ;
 
-: pickers ( n -- array )
-    <iota> <reversed> [ picker ] map ;
-
 : class/item ( item -- class/item )
     dup class? [
-        dup predicate? [
-            class-of
-        ] unless
-    ] unless ;
+        dup predicate? [ class-of ] unless
+    ] unless ; inline
 
 :: attach-cache ( quot -- quot' )
     quot last :> method 
     method "multi-method-generic" word-prop :> generic
-    generic "hooks" word-prop [ '[ _ get , ] ] map concat
     generic "declared-effect" word-prop in>> length :> stack-length
-    stack-length pickers [ [ , ] append ] map concat
-    append >quotation :> parameters
     generic "method-cache" word-prop :> method-cache 
     quot '[
-        generic quot method-cache
-        '[
+        generic quot method-cache '[
             _ "dispatch-key" word-prop _ swap _ set-at ] %
         _ %
     ] [ ] make ;
@@ -192,23 +183,23 @@ ERROR: no-method arguments generic ;
     effect in>> length :> stack-length
     generic "hooks" word-prop length :> hooks-length
     hooks-length stack-length + :> total-length
-    effect [ in>> hooks-length "x" <array> append ] [ out>> ] bi
-    <effect> :> drop-n-effect 
+    effect 
+    [ in>> hooks-length "x" <array> append ]
+    [ out>> ] bi <effect> :> drop-n-effect 
     stack-length '[ _ ndup ]
     generic "hooks" word-prop [ '[ _ get ] ] map concat append
-    total-length '[ _ narray ] append :> collector
+    total-length '[ _ narray ] append :> key-array
     generic '[ drop _ swap "dispatch-key" set-word-prop ] quot
     append :> no-cache-quot
     generic "method-cache" word-prop :> method-cache
-    collector '[
+    key-array '[
         _ %
-        method-cache drop-n-effect no-cache-quot
-        '[
+        method-cache drop-n-effect no-cache-quot '[
             [ class/item ] map dup _ at dup
             [ nip _ call-effect ] _ if ] %
     ] [ ] make ;
 
-CONSTANT: CACHE-THRESHOLD 1
+CONSTANT: CACHE-THRESHOLD 100
 
 :: multi-dispatch-quot ( methods generic -- quot )
     methods length CACHE-THRESHOLD >= :> cache?  
