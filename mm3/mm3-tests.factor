@@ -1,4 +1,4 @@
-USING: combinators formatting kernel math memory mm5 namespaces
+USING: combinators formatting kernel math memory mm3 namespaces
 prettyprint sequences tools.test tools.time ;
 IN: mm3.tests
 
@@ -469,7 +469,7 @@ gc
 gc
 [
     TIMES [
-        the-man-No.001 the-man-No.002 ln-beats? drop
+        the-man-No.002 the-man-No.001 ln-beats? drop
     ] times
 ] benchmark
 [ 1.0e9 / ] [ ref get / ] bi
