@@ -179,30 +179,32 @@ ERROR: no-method arguments generic ;
     generic "declared-effect" word-prop in>> length :> stack-length
     stack-length pickers [ [ , ] append ] map concat
     append >quotation :> parameters
-    [
-        generic quot generic '[
-            _ "dispatch-key" word-prop
-            _ swap _ "method-cache" word-prop set-at ] %
-        quot %
+    generic "method-cache" word-prop :> method-cache 
+    quot '[
+        generic quot method-cache
+        '[
+            _ "dispatch-key" word-prop _ swap _ set-at ] %
+        _ %
     ] [ ] make ;
 
 :: attach-cache-exec ( quot generic -- quot' )
     generic "declared-effect" word-prop :> effect
+    effect in>> length :> stack-length
     generic "hooks" word-prop length :> hooks-length
+    hooks-length stack-length + :> total-length
     effect [ in>> hooks-length "x" <array> append ] [ out>> ] bi
     <effect> :> drop-n-effect 
-    generic "hooks" word-prop [ '[ _ get , ] ] map concat
-    effect in>> length :> stack-length
-    stack-length pickers [ [ , ] append ] map concat
-    append >quotation :> parameters
+    stack-length '[ _ ndup ]
+    generic "hooks" word-prop [ '[ _ get ] ] map concat append
+    total-length '[ _ narray ] append :> collector
     generic '[ drop _ swap "dispatch-key" set-word-prop ] quot
-    append :> no-cache-quot 
-    [
-        parameters generic
-        drop-n-effect no-cache-quot
+    append :> no-cache-quot
+    generic "method-cache" word-prop :> method-cache
+    collector '[
+        _ %
+        method-cache drop-n-effect no-cache-quot
         '[
-            _ { } make [ class/item ] map dup
-            _ "method-cache" word-prop at dup
+            [ class/item ] map dup _ at dup
             [ nip _ call-effect ] _ if ] %
     ] [ ] make ;
 
@@ -230,8 +232,8 @@ PREDICATE: mm-generic < word
     ] [ ] make ;
 
 : update-generic ( word -- )
+    dup H{ } clone "method-cache" set-word-prop
     dup make-generic 
-    over H{ } clone "method-cache" set-word-prop
     define ;
 
 ! Methods
