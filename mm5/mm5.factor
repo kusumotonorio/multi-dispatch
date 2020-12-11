@@ -190,11 +190,11 @@ ERROR: no-method arguments generic ;
     generic "hooks" word-prop [ '[ _ get ] ] map concat append
     total-length '[ _ narray ] append :> key-array
     generic '[ drop _ swap "dispatch-key" set-word-prop ] quot
-    append :> no-cache-quot
+    append :> cache-miss-quot
     generic "method-cache" word-prop :> method-cache
     key-array '[
         _ %
-        method-cache drop-n-effect no-cache-quot '[
+        method-cache drop-n-effect cache-miss-quot '[
             [ class/item ] map dup _ at dup
             [ nip _ call-effect ] _ if ] %
     ] [ ] make ;
