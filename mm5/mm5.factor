@@ -2,13 +2,19 @@
 
 USING: accessors arrays assocs classes classes.algebra
 combinators compiler.units debugger definitions effects
-effects.parser generalizations hashtables io kernel
-kernel.private make math math.order namespaces parser
-prettyprint prettyprint.backend prettyprint.custom quotations
-see sequences sequences.generalizations sets shuffle sorting
-splitting vectors words ;
+effects.parser generalizations generic.parser hashtables io
+kernel kernel.private locals.parser make math math.order
+namespaces parser prettyprint prettyprint.backend
+prettyprint.custom prettyprint.sections quotations see sequences
+sequences.generalizations sets shuffle sorting splitting vectors
+words ;
 FROM: namespaces => set ;
 IN: mm5
+
+TUPLE: multi-method-combination
+    hooks 
+    cache-key dispatched-method 
+    method-cache ;
 
 : parse-variable-effect ( effect -- effect' hooks )
     [ 
@@ -29,8 +35,8 @@ IN: mm5
 :: generic-stack-effect ( generic -- effect )
         generic
         [ stack-effect [ in>> ] [ out>> ] bi ]
-        [ "hooks" word-prop ]
-        bi :> ( in out hooks )
+       [ "combination-type" word-prop hooks>> ]
+         bi :> ( in out hooks )
         hooks [ in ] [ { "|" } in 3append ] if-empty out <effect> ;
 
 :: effect>specializer ( effect -- specializer )
@@ -171,32 +177,45 @@ ERROR: no-method arguments generic ;
     quot last :> method 
     method "multi-method-generic" word-prop :> generic
     generic "declared-effect" word-prop in>> length :> stack-length
-    generic "method-cache" word-prop :> method-cache 
+    generic "combination-type" word-prop method-cache>> :> method-cache
+    generic "combination-type" word-prop :> multi-combination
     quot '[
-        generic quot method-cache '[
-            _ "dispatch-key" word-prop _ swap _ set-at ] %
+        multi-combination quot method-cache
+        quot multi-combination
+        '[
+            _ cache-key>> _ swap _ set-at 
+            _ _ dispatched-method<<
+        ] %
         _ %
     ] [ ] make ;
 
 :: attach-cache-exec ( quot generic -- quot' )
     generic "declared-effect" word-prop :> effect
     effect in>> length :> stack-length
-    generic "hooks" word-prop length :> hooks-length
+    generic "combination-type" word-prop hooks>> length :> hooks-length
     hooks-length stack-length + :> total-length
-    effect 
-    [ in>> hooks-length "x" <array> append ]
-    [ out>> ] bi <effect> :> drop-n-effect 
+    effect [
+        in>> hooks-length "x" <array> append
+    ] [ out>> ] bi <effect> :> drop-n-effect 
     stack-length '[ _ ndup ]
-    generic "hooks" word-prop [ '[ _ get ] ] map concat append
+    generic "combination-type" word-prop hooks>> [ '[ _ get ] ] map concat append
     total-length '[ _ narray ] append :> key-array
-    generic '[ drop _ swap "dispatch-key" set-word-prop ] quot
-    append :> cache-miss-quot
-    generic "method-cache" word-prop :> method-cache
+    generic "combination-type" word-prop '[
+        drop _ cache-key<< ]
+    quot append :> cache-miss-quot
+    generic "combination-type" word-prop :> multi-combination
+    multi-combination method-cache>> :> method-cache
     key-array '[
         _ %
-        method-cache drop-n-effect cache-miss-quot '[
-            [ class/item ] map dup _ at dup
-            [ nip _ call-effect ] _ if ] %
+        multi-combination multi-combination drop-n-effect
+        method-cache drop-n-effect cache-miss-quot
+        '[
+            [ class/item ] map dup _ cache-key>> = [
+                drop _ dispatched-method>> _ call-effect
+            ] [
+                dup _ at dup [ nip _ call-effect ] _ if 
+            ] if
+        ] %
     ] [ ] make ;
 
 CONSTANT: CACHE-THRESHOLD 100
@@ -223,7 +242,7 @@ PREDICATE: mm-generic < word
     ] [ ] make ;
 
 : update-generic ( word -- )
-    dup H{ } clone "method-cache" set-word-prop
+    dup "combination-type" word-prop H{ } clone swap method-cache<<
     dup make-generic 
     define ;
 
@@ -238,16 +257,18 @@ M: method-body crossref?
     "forgotten" word-prop not ;
 
 : method-word-name ( specializer generic -- string )
-    [ name>> % "-" % unparse % ] "" make ;
+    [ name>> % " " % unparse % ] "" make ;
 
-: method-word-props ( specializer generic -- assoc )
+: method-word-props ( effect specializer generic -- assoc )
     [
         "multi-method-generic" ,,
         "multi-method-specializer" ,,
+        "declared-effect" ,,
     ] H{ } make ;
 
-: <method> ( specializer generic -- word )
-    [ method-word-props ] 2keep
+: <method> ( effect specializer generic -- word )
+    [ method-word-props ] 3keep nip ! 2keep
+    [  ] dip
     method-word-name f <word>
     swap >>props ;
 
@@ -262,21 +283,14 @@ M: method-body crossref?
 : method ( classes word -- method )
     "multi-methods" word-prop at ;
 
-: create-method ( effect classes generic -- method )
+:: create-method ( effect classes generic -- method )
+    effect classes generic
     2dup method dup [
         2nip
     ] [
-        drop [ <method> dup ] 2keep reveal-method
+        drop [ effect -rot <method> dup ] 2keep reveal-method
     ] if
-    dup rot set-stack-effect ;
-
-: create-method-with-locals ( effect classes generic -- method )
-    2dup method dup [
-        2nip
-    ] [
-        drop [ <method> dup ] 2keep reveal-method
-    ] if
-    dup rot set-stack-effect ;
+    dup rot drop effect set-stack-effect ;
 
 : niceify-method ( seq -- seq )
     [ dup \ f eq? [ drop f ] when ] map ;
@@ -303,11 +317,12 @@ M: no-method error.
     [ "multi-method-generic" word-prop ] bi prefix ;
 
 : define-generic ( word effect hooks -- )
+    [ over  multi-method-combination new "combination-type" set-word-prop ] dip
     [ over swap set-stack-effect ] dip
-    dupd "hooks" set-word-prop
-    dup "multi-methods" word-prop [ drop ] [
+    over "combination-type" word-prop hooks<<
+    dup "multi-methods" word-prop [ drop ] [              ! ???
         [ H{ } clone "multi-methods" set-word-prop ]
-        [ H{ } clone "method-cache" set-word-prop ]
+        [ "combination-type" word-prop H{ } clone swap method-cache<< ]
         [ update-generic ]
         tri
     ] if ;
@@ -320,32 +335,15 @@ SYNTAX: MGENERIC: scan-new-word scan-effect
 : create-method-in ( effect specializer generic -- method )
     create-method dup save-location f set-last-word ;
 
-: create-method-in-with-locals ( effect specializer generic -- method )
-    create-method-with-locals dup save-location f set-last-word ;
-
 : scan-new-method ( -- method )
-    scan-word scan-effect dup effect>specializer rot create-method-in ;
-
-: scan-new-method-with-locals ( -- method )
-    scan-word scan-effect dup effect>specializer rot create-method-in ;
+    scan-word scan-effect
+    dup effect>specializer rot create-method-in ;
 
 : (MM:) ( -- method def ) scan-new-method parse-definition ;
 
 USING: generic.parser locals.parser ;
 
-: parse-locals ( effect -- effect' vars assoc )
-    dup in>> [ dup pair? [ first ] when ] map
-    make-locals ;
-
 SYNTAX: MM: (MM:) define ;
-
-: (MM::) ( -- word def )
-    [
-        scan-new-method-with-locals
-            [ parse-definition ] with-method-definition
-    ] with-definition ;
-
-SYNTAX: MM:: (MM::) define ;
 
 
 ! Definition protocol. We qualify core generics here
@@ -381,4 +379,17 @@ M: method-body definer
 M: method-body synopsis*
     dup definer.
     [ "multi-method-generic" word-prop pprint-word ]
-    [ "multi-method-specializer" word-prop pprint* ] bi ;
+    [ "declared-effect" word-prop pprint* ]
+    bi ;
+
+SYNTAX: MM\
+    scan-word scan-effect effect>specializer
+    swap method <wrapper> suffix! ;
+
+M: method-body pprint*
+    <block
+    \ MM\ pprint-word
+    [ "multi-method-generic" word-prop pprint-word ]
+    [ "declared-effect" word-prop pprint* ]
+    bi
+    block> ;

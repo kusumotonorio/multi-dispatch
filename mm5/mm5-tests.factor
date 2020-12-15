@@ -14,7 +14,7 @@ SYMBOLS: thing1 thing2 ;
 ! multi-dispatch
 MGENERIC: md-beats? ( obj1 obj2 -- ? )
 
-MM: md-beats? ( obj1: paper obj2: scissors -- ? ) 2drop t ;
+MM: md-beats? ( :paper :scissors -- ? ) 2drop t ;
 MM: md-beats? ( :scissors :rock -- ? ) 2drop t ;
 MM: md-beats? ( :rock :paper -- ? ) 2drop t ;
 MM: md-beats? ( :thing :thing -- ? ) 2drop f ;
@@ -186,7 +186,7 @@ MM: dispatch#1 ( a b: object c -- d ) 3drop "Something other than integer" ;
 ] unit-test
 
 
-CONSTANT: TIMES 100,000
+CONSTANT: TIMES 1000,000
 SYMBOL: no-dispatch-time
 
 "\nRepeat all combinations of rock-paper-scissors "
@@ -261,6 +261,23 @@ gc
 ] benchmark
 [ 1.0e9 / ] [ no-dispatch-time get / ] bi
 "multi-dispatch:       %.6f seconds (%.2f times slower)\n" printf
+
+gc
+[
+    TIMES [
+        paper paper       md-play drop
+        paper paper       md-play drop
+        paper paper       md-play drop
+        paper paper       md-play drop
+        paper paper       md-play drop
+        paper paper       md-play drop
+        paper paper       md-play drop
+        paper paper       md-play drop
+        paper paper       md-play drop        
+    ] times
+] benchmark
+[ 1.0e9 / ] [ no-dispatch-time get / ] bi
+"multi-dispatch2:      %.6f seconds (%.2f times slower)\n" printf
 
 gc
 [
@@ -456,21 +473,42 @@ TIMES [
       ] }
     [ "%d" sprintf ]
 ] cond
-" times\n" 3append printf
+" * 9 times\n" 3append printf
 
 gc
 [
     TIMES [
-        the-man-No.119 the-man-No.120 ln-beats? drop
+        the-man-No.067 the-man-No.066 ln-beats? drop
+        the-man-No.067 the-man-No.066 ln-beats? drop
+        the-man-No.067 the-man-No.066 ln-beats? drop
+
+        the-man-No.067 the-man-No.066 ln-beats? drop
+        the-man-No.067 the-man-No.066 ln-beats? drop
+        the-man-No.067 the-man-No.066 ln-beats? drop
+
+        the-man-No.067 the-man-No.066 ln-beats? drop
+        the-man-No.067 the-man-No.066 ln-beats? drop
+        the-man-No.067 the-man-No.066 ln-beats? drop
+
     ] times
 ] benchmark dup ref set
-1.0e9 / "No.119 vs. No.120: %.6f　seconds\n" printf
+1.0e9 / "No.067 vs. No.066: %.6f　seconds\n" printf
 
 gc
 [
     TIMES [
-        the-man-No.001 the-man-No.002 ln-beats? drop
+        the-man-No.072 the-man-No.074 ln-beats? drop
+        the-man-No.072 the-man-No.074 ln-beats? drop
+        the-man-No.072 the-man-No.074 ln-beats? drop
+
+        the-man-No.072 the-man-No.074 ln-beats? drop
+        the-man-No.072 the-man-No.074 ln-beats? drop
+        the-man-No.072 the-man-No.074 ln-beats? drop
+
+        the-man-No.072 the-man-No.074 ln-beats? drop
+        the-man-No.072 the-man-No.074 ln-beats? drop
+        the-man-No.072 the-man-No.074 ln-beats? drop
     ] times
 ] benchmark
 [ 1.0e9 / ] [ ref get / ] bi
-"No.001 vs. No.002: %.6f　seconds (%.2f times slower)\n" printf
+"No.072 vs. No.074: %.6f　seconds (%.2f times slower)\n" printf
