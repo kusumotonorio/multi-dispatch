@@ -200,20 +200,19 @@ ERROR: no-method arguments generic ;
     stack-length '[ _ ndup ]
     generic "combination-type" word-prop hooks>> [ '[ _ get ] ] map concat append
     total-length '[ _ narray ] append :> key-array
-    generic "combination-type" word-prop '[
-        drop _ cache-key<< ]
-    quot append :> cache-miss-quot
+    [ drop ] quot append :> cache-miss-quot
     generic "combination-type" word-prop :> multi-combination
     multi-combination method-cache>> :> method-cache
     key-array '[
         _ %
-        multi-combination multi-combination drop-n-effect
-        method-cache drop-n-effect cache-miss-quot
+        multi-combination
+        multi-combination drop-n-effect
+        multi-combination method-cache drop-n-effect cache-miss-quot
         '[
             [ class/item ] map dup _ cache-key>> = [
                 drop _ dispatched-method>> _ call-effect
             ] [
-                dup _ at dup [ nip _ call-effect ] _ if 
+                dup _ cache-key<< _ at dup [ _ call-effect ] _ if 
             ] if
         ] %
     ] [ ] make ;
@@ -340,8 +339,6 @@ SYNTAX: MGENERIC: scan-new-word scan-effect
     dup effect>specializer rot create-method-in ;
 
 : (MM:) ( -- method def ) scan-new-method parse-definition ;
-
-USING: generic.parser locals.parser ;
 
 SYNTAX: MM: (MM:) define ;
 

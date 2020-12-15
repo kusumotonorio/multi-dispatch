@@ -186,7 +186,7 @@ MM: dispatch#1 ( a b: object c -- d ) 3drop "Something other than integer" ;
 ] unit-test
 
 
-CONSTANT: TIMES 1000,000
+CONSTANT: TIMES 100,000
 SYMBOL: no-dispatch-time
 
 "\nRepeat all combinations of rock-paper-scissors "
