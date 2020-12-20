@@ -11,6 +11,36 @@ words ;
 FROM: namespaces => set ;
 IN: mm5
 
+USING: math.private ;
+
+! : sequence-hashcode-step' ( oldhash newpart -- newhash )
+!    integer>fixnum swap [
+!        [ -2 fixnum-shift-fast ] [ 5 fixnum-shift-fast ] bi
+!        fixnum+fast fixnum+fast
+!    ] keep fixnum-bitxor ; inline
+
+: sequence-hashcode-step' ( oldhash newpart -- newhash )
+  integer>fixnum swap
+  dup 9 fixnum-shift-fast fixnum+fast
+  fixnum+fast ; inline
+
+! : sequence-hashcode-step ( oldhash newpart -- newhash )
+!   integer>fixnum swap
+!   [ 5 fixnum-shift-fast ]
+!   [ fixnum-bitnot 1 integer>fixnum fixnum+fast ]
+!   bi fixnum+fast
+!   fixnum+fast ; inline
+
+
+: sequence-hashcode' ( n seq -- x )
+    [ 0 ] 2dip [ hashcode* sequence-hashcode-step' ] with each ;
+    inline
+
+: hashcode-test ( array -- hashcode )
+    3 swap [ sequence-hashcode' ] recursive-hashcode ;
+
+
+
 TUPLE: multi-method-combination
     hooks 
     cache-key dispatched-method 
