@@ -8,3 +8,6 @@ Syntax of [`multi-methods`](https://github.com/factor/factor/tree/master/extra/m
 
 ### mm5
 Dispatching with Caching
+
+### mm6
+Generate code similar to the generic word for single dispatch when there is only one specializer
