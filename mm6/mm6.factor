@@ -363,8 +363,14 @@ DEFER: define-single-default-method
             [ methods prepare-methods % sort-methods ] keep
             multi-dispatch-quot %
         ] [ ] make generic swap define
-    ] if 
-    ;
+    ] if ;
+
+! :: make-generic ( generic -- )
+!     generic
+!     [
+!         [ methods prepare-methods % sort-methods ] keep
+!         multi-dispatch-quot %
+!     ] [ ] make generic swap define ;
 
 : update-generic ( word -- )
     dup "combination-type" word-prop H{ } clone swap method-cache<<
