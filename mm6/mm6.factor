@@ -462,12 +462,13 @@ M: no-method error.
     [ over  multi-method-combination new "combination-type" set-word-prop ] dip
     [ over swap set-stack-effect ] dip
     over "combination-type" word-prop hooks<<
-    dup "multi-methods" word-prop [ drop ] [              ! ???
+!    dup "multi-methods" word-prop [ drop ] [              ! ???
         [ H{ } clone "multi-methods" set-word-prop ]
         [ "combination-type" word-prop H{ } clone swap method-cache<< ]
         [ update-generic ]
         tri
-    ] if ;
+!    ] if 
+;
 
 ! Syntax
 SYNTAX: MGENERIC: scan-new-word scan-effect 
