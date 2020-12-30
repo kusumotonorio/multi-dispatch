@@ -525,7 +525,7 @@ COMBI-TIMES [
       ] }
     [ "%d" sprintf ]
 ] cond
-" repetitions the showdown of the combinations of No.001 to No.005\n" 3append printf
+" repetitions of the showdown of the combinations of No.001 to No.005\n" 3append printf
 
 gc
 [
