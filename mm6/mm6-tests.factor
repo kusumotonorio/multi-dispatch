@@ -114,30 +114,30 @@ M: rock sd-beats? drop scissors? [ t ] [ f ] if ;
 ] unit-test
 
 ! multi-sigle-dispach
-MGENERIC: msd-beats? ( obj1 obj2 -- ? )
+MGENERIC: smd-beats? ( obj1 obj2 -- ? )
 
-MM: msd-beats? ( obj1 obj2: paper -- ? )    drop rock? [ t ] [ f ] if ; 
-MM: msd-beats? ( obj1 obj2: scissors -- ? ) drop paper? [ t ] [ f ] if ;
-MM: msd-beats? ( obj1 obj2: rock -- ? )     drop scissors? [ t ] [ f ] if ;
+MM: smd-beats? ( obj1 obj2: paper -- ? )    drop rock? [ t ] [ f ] if ; 
+MM: smd-beats? ( obj1 obj2: scissors -- ? ) drop paper? [ t ] [ f ] if ;
+MM: smd-beats? ( obj1 obj2: rock -- ? )     drop scissors? [ t ] [ f ] if ;
 
-: msd-play ( obj1 obj2 -- ? ) msd-beats? ;
+: smd-play ( obj1 obj2 -- ? ) smd-beats? ;
 
 { 
     f t f  f f t  t f f 
     f t f  f f t  t f f 
 } [
     2 [
-        paper paper       msd-play
-        paper scissors    msd-play
-        paper rock        msd-play
+        paper paper       smd-play
+        paper scissors    smd-play
+        paper rock        smd-play
         
-        scissors paper    msd-play
-        scissors scissors msd-play
-        scissors rock     msd-play
+        scissors paper    smd-play
+        scissors scissors smd-play
+        scissors rock     smd-play
         
-        rock paper        msd-play
-        rock scissors     msd-play
-        rock rock         msd-play
+        rock paper        smd-play
+        rock scissors     smd-play
+        rock rock         smd-play
     ] times
 ] unit-test
 
@@ -146,17 +146,17 @@ MM: msd-beats? ( obj1 obj2: rock -- ? )     drop scissors? [ t ] [ f ] if ;
     f t f  f f t  t f f 
 } [
     2 [
-        paper paper       msd-play
-        paper scissors    msd-play
-        paper rock        msd-play
+        paper paper       smd-play
+        paper scissors    smd-play
+        paper rock        smd-play
         
-        scissors paper    msd-play
-        scissors scissors msd-play
-        scissors rock     msd-play
+        scissors paper    smd-play
+        scissors scissors smd-play
+        scissors rock     smd-play
         
-        rock paper        msd-play
-        rock scissors     msd-play
-        rock rock         msd-play
+        rock paper        smd-play
+        rock scissors     smd-play
+        rock rock         smd-play
     ] times
 ] unit-test
 
@@ -312,17 +312,17 @@ gc
 gc
 [
     TIMES [
-        paper paper       msd-play drop
-        paper scissors    msd-play drop
-        paper rock        msd-play drop
+        paper paper       smd-play drop
+        paper scissors    smd-play drop
+        paper rock        smd-play drop
         
-        scissors paper    msd-play drop
-        scissors scissors msd-play drop
-        scissors rock     msd-play drop
+        scissors paper    smd-play drop
+        scissors scissors smd-play drop
+        scissors rock     smd-play drop
         
-        rock paper        msd-play drop
-        rock scissors     msd-play drop
-        rock rock         msd-play drop
+        rock paper        smd-play drop
+        rock scissors     smd-play drop
+        rock rock         smd-play drop
     ] times
 ] benchmark
 [ 1.0e9 / ] [ no-dispatch-time get / ] bi
@@ -475,38 +475,38 @@ MM: md-ln-beats? ( :man :the-man-No.029 -- ? ) 2drop t ;
 MM: md-ln-beats? ( :man :the-man-No.030 -- ? ) 2drop t ;
 
   
-MGENERIC: msd-ln-beats? ( man man -- ? )
+MGENERIC: smd-ln-beats? ( man man -- ? )
 
-MM: msd-ln-beats? ( man :the-man-No.001 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.002 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.003 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.004 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.005 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.006 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.007 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.008 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.009 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.010 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.011 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.012 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.013 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.014 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.015 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.016 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.017 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.018 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.019 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.020 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.021 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.022 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.023 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.024 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.025 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.026 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.027 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.028 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.029 -- ? ) 2drop t ;
-MM: msd-ln-beats? ( man :the-man-No.030 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.001 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.002 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.003 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.004 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.005 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.006 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.007 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.008 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.009 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.010 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.011 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.012 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.013 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.014 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.015 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.016 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.017 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.018 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.019 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.020 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.021 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.022 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.023 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.024 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.025 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.026 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.027 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.028 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.029 -- ? ) 2drop t ;
+MM: smd-ln-beats? ( man :the-man-No.030 -- ? ) 2drop t ;
 
 
 CONSTANT: COMBI-TIMES 100,000
@@ -596,31 +596,31 @@ gc
 gc
 [
     COMBI-TIMES [
-        the-man-No.001 the-man-No.001 msd-ln-beats? drop
-        the-man-No.001 the-man-No.002 msd-ln-beats? drop
-        the-man-No.001 the-man-No.003 msd-ln-beats? drop
-        the-man-No.001 the-man-No.004 msd-ln-beats? drop
-        the-man-No.001 the-man-No.005 msd-ln-beats? drop
-        the-man-No.002 the-man-No.001 msd-ln-beats? drop
-        the-man-No.002 the-man-No.002 msd-ln-beats? drop
-        the-man-No.002 the-man-No.003 msd-ln-beats? drop
-        the-man-No.002 the-man-No.004 msd-ln-beats? drop
-        the-man-No.002 the-man-No.005 msd-ln-beats? drop
-        the-man-No.003 the-man-No.001 msd-ln-beats? drop
-        the-man-No.003 the-man-No.002 msd-ln-beats? drop
-        the-man-No.003 the-man-No.003 msd-ln-beats? drop
-        the-man-No.003 the-man-No.004 msd-ln-beats? drop
-        the-man-No.003 the-man-No.005 msd-ln-beats? drop
-        the-man-No.004 the-man-No.001 msd-ln-beats? drop
-        the-man-No.004 the-man-No.002 msd-ln-beats? drop
-        the-man-No.004 the-man-No.003 msd-ln-beats? drop
-        the-man-No.004 the-man-No.004 msd-ln-beats? drop
-        the-man-No.004 the-man-No.005 msd-ln-beats? drop
-        the-man-No.005 the-man-No.001 msd-ln-beats? drop
-        the-man-No.005 the-man-No.002 msd-ln-beats? drop
-        the-man-No.005 the-man-No.003 msd-ln-beats? drop
-        the-man-No.005 the-man-No.004 msd-ln-beats? drop
-        the-man-No.005 the-man-No.005 msd-ln-beats? drop
+        the-man-No.001 the-man-No.001 smd-ln-beats? drop
+        the-man-No.001 the-man-No.002 smd-ln-beats? drop
+        the-man-No.001 the-man-No.003 smd-ln-beats? drop
+        the-man-No.001 the-man-No.004 smd-ln-beats? drop
+        the-man-No.001 the-man-No.005 smd-ln-beats? drop
+        the-man-No.002 the-man-No.001 smd-ln-beats? drop
+        the-man-No.002 the-man-No.002 smd-ln-beats? drop
+        the-man-No.002 the-man-No.003 smd-ln-beats? drop
+        the-man-No.002 the-man-No.004 smd-ln-beats? drop
+        the-man-No.002 the-man-No.005 smd-ln-beats? drop
+        the-man-No.003 the-man-No.001 smd-ln-beats? drop
+        the-man-No.003 the-man-No.002 smd-ln-beats? drop
+        the-man-No.003 the-man-No.003 smd-ln-beats? drop
+        the-man-No.003 the-man-No.004 smd-ln-beats? drop
+        the-man-No.003 the-man-No.005 smd-ln-beats? drop
+        the-man-No.004 the-man-No.001 smd-ln-beats? drop
+        the-man-No.004 the-man-No.002 smd-ln-beats? drop
+        the-man-No.004 the-man-No.003 smd-ln-beats? drop
+        the-man-No.004 the-man-No.004 smd-ln-beats? drop
+        the-man-No.004 the-man-No.005 smd-ln-beats? drop
+        the-man-No.005 the-man-No.001 smd-ln-beats? drop
+        the-man-No.005 the-man-No.002 smd-ln-beats? drop
+        the-man-No.005 the-man-No.003 smd-ln-beats? drop
+        the-man-No.005 the-man-No.004 smd-ln-beats? drop
+        the-man-No.005 the-man-No.005 smd-ln-beats? drop
     ] times
 ] benchmark
 [ 1.0e9 / ] [ ref get / ] bi
