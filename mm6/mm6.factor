@@ -337,7 +337,9 @@ DEFER: make-generic
     generic methods specializers :> ( stack-specs hook-specs )
     hook-specs length 0 = [
         stack-specs length 1 = [ stack-specs first ] [ f ] if
-    ] [ f ] if ;
+    ] [
+        hook-specs length 1 = [ hook-specs first ] [ f ] if
+    ] if ;
 
 : update-single-generic ( class generic -- )
     [ changed-call-sites ] [ remake-single-generic drop ]
@@ -351,7 +353,7 @@ DEFER: define-single-default-method
             ! single-hook-dispatch
             :> var
             generic "multi-methods" word-prop [
-                [ dup length 1 - swap nth ] dip 
+                [ dup length 1 - swap nth second ] dip 
             ] assoc-map
             generic swap "methods" set-word-prop
             var <multi-single-hook-combination>
