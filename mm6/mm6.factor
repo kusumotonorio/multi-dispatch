@@ -9,13 +9,12 @@ locals.parser make math math.order math.private multiline
 namespaces parser prettyprint prettyprint.backend
 prettyprint.custom prettyprint.sections quotations see sequences
 sequences.generalizations sets shuffle sorting splitting vectors
-words ;
+words words.symbol ;
 FROM: namespaces => set ;
 FROM: generic.single.private => inline-cache-miss
 inline-cache-miss-tail lookup-method mega-cache-lookup
 mega-cache-miss ;
 IN: mm6
-
 ! USING: math.private ;
 
 : sequence-hashcode-step' ( oldhash newpart -- newhash )
@@ -63,12 +62,16 @@ TUPLE: multi-single-combination ;
 
 TUPLE: multi-single-standard-combination < multi-single-combination # ;
 
+TUPLE: multi-single-hook-combination < multi-single-combination var ;
+
 ERROR: bad-dispatch-position # ;
 
 : <multi-single-standard-combination> ( # -- multi-single-standard-combination )
     dup integer? [ dup 0 < ] [ t ] if
     [ bad-dispatch-position ] when
     multi-single-standard-combination boa ;
+
+C: <multi-single-hook-combination> multi-single-hook-combination
 
 TUPLE: multi-method-combination
     hooks 
@@ -330,7 +333,7 @@ DEFER: make-generic
     outdated-generics get members [ single-generic? ] filter
     [ make-single-generic ] each ;
 
-:: ?single-generic# ( generic -- n/f )
+:: ?single-generic-spec ( generic -- n/var/f )
     generic methods specializers :> ( stack-specs hook-specs )
     hook-specs length 0 = [
         stack-specs length 1 = [ stack-specs first ] [ f ] if
@@ -343,21 +346,34 @@ DEFER: make-generic
 DEFER: define-single-default-method
 
 :: make-generic ( generic -- )
-    generic ?single-generic# dup [
-        [| # |
+    generic ?single-generic-spec dup [
+        dup symbol? [
+            ! single-hook-dispatch
+            :> var
             generic "multi-methods" word-prop [
-                [ dup length 1 - # - swap nth ] dip 
+                [ dup length 1 - swap nth ] dip 
             ] assoc-map
-            generic swap "methods" set-word-prop ]
-        [
-            <multi-single-standard-combination>
-            generic swap "single-combination" set-word-prop ]
-        bi
+            generic swap "methods" set-word-prop
+            var <multi-single-hook-combination>
+            generic swap "single-combination" set-word-prop
+        ] [
+            ! standard-single-dispatch
+            [| # |
+               generic "multi-methods" word-prop [
+                   [ dup length 1 - # - swap nth ] dip 
+               ] assoc-map
+               generic swap "methods" set-word-prop ]
+            [
+                <multi-single-standard-combination>
+                generic swap "single-combination" set-word-prop ]
+            bi
+        ] if
         generic make-single-generic
         generic dup "single-combination" word-prop 
         define-single-default-method
     ] [
-       drop
+        ! multi-dispach
+        drop
         generic
         [
             [ methods prepare-methods % sort-methods ] keep
@@ -542,7 +558,7 @@ M: method-body pprint*
     block> ;
 
 
-! single -------------------------------------------------------
+! ! ! ! single ! ! ! !
 
 ERROR: no-single-method object generic ;
 
@@ -857,7 +873,7 @@ PREDICATE: default-method < word "default" word-prop ;
 
 
 
-! standard -----------------------------------------------------
+! ! ! ! standard ! ! ! !
 
 M: multi-single-standard-combination check-combination-effect
     [ single-dispatch# ] [ in>> length ] bi* over >
@@ -902,3 +918,20 @@ M: multi-single-standard-combination mega-cache-quot
     single-combination get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence ;
 
 
+! ! ! ! hook ! ! ! !
+
+PREDICATE: multi-single-hook-generic < mm-generic
+    "single-combination" word-prop multi-single-hook-combination? ;
+
+M: multi-single-hook-combination [picker]
+    single-combination get var>> [ get ] curry ;
+
+M: multi-single-hook-combination single-dispatch# drop 0 ;
+
+M: multi-single-hook-combination mega-cache-quot
+    1quotation [picker] [ lookup-method (execute) ] surround ;
+
+! M: multi-single-hook-generic definer drop \ HOOK: f ;
+
+M: multi-single-hook-generic effective-method
+    [ "single-combination" word-prop var>> get ] keep method-for-object ;

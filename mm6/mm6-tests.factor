@@ -187,13 +187,46 @@ M: rock shd-beats? thing1 get scissors? [ t ] [ f ] if ;
     rock     thing2 set shd-play
 ] unit-test 
 
+! sigle-spac-hook-multi-dispatch
+MGENERIC: shmd-beats? ( thing2 | -- ? )
+
+MM: shmd-beats? ( thing2: scissors | -- ? ) thing1 get paper? [ t ] [ f ] if ; 
+MM: shmd-beats? ( thing2: rock | -- ? ) thing1 get scissors? [ t ] [ f ] if ; 
+MM: shmd-beats? ( thing2: paper | -- ? ) thing1 get rock? [ t ] [ f ] if ; 
+
+: shmd-play ( -- ? ) shd-beats? ;
+
+{ f t f  f f t  t f f } [ 
+    paper    thing1 set 
+    paper    thing2 set shmd-play
+    scissors thing2 set shmd-play
+    rock     thing2 set shmd-play
+    
+    scissors thing1 set 
+    paper    thing2 set shmd-play
+    scissors thing2 set shmd-play
+    rock     thing2 set shmd-play
+        
+    rock     thing1 set 
+    paper    thing2 set shmd-play
+    scissors thing2 set shmd-play
+    rock     thing2 set shmd-play
+] unit-test 
+
 
 MGENERIC: hook-beats-stack? ( thing1 | thing-s1 thing-s2 -- ? )
 
-MM: hook-beats-stack? ( thing1: paper    | :rock :rock -- ? ) 2drop t ;
-MM: hook-beats-stack? ( thing1: scissors | :paper :paper -- ? ) 2drop t ;
-MM: hook-beats-stack? ( thing1: rock     | :scissors :scissors -- ? ) 2drop t ;
-MM: hook-beats-stack? ( thing1: thing    | :thing :thing -- ? ) 2drop f ;
+MM: hook-beats-stack? ( thing1: paper    | :rock :rock -- ? )
+    2drop t ;
+
+MM: hook-beats-stack? ( thing1: scissors | :paper :paper -- ? )
+    2drop t ;
+
+MM: hook-beats-stack? ( thing1: rock     | :scissors :scissors -- ? )
+    2drop t ;
+
+MM: hook-beats-stack? ( thing1: thing    | :thing :thing -- ? )
+    2drop f ;
 
 { t f } [
     paper thing1 set    rock rock hook-beats-stack?
@@ -203,17 +236,20 @@ MM: hook-beats-stack? ( thing1: thing    | :thing :thing -- ? ) 2drop f ;
 
 MGENERIC: hook-beats-stack?-2 ( thing1 thing2 | a: thing1 b: thing2 -- ? )
 
-MM: hook-beats-stack?-2 ( thing1: paper thing2: paper |
-                          a: rock b: rock -- ? ) 2drop t ;
+MM: hook-beats-stack?-2 ( thing1: paper thing2: paper | a: rock b: rock -- ? )
+    2drop t ;
 
 MM: hook-beats-stack?-2 ( thing1: scissors thing2: scissors |
-                          a: paper b: paper -- ? ) 2drop t ;
+                          a: paper b: paper -- ? )
+    2drop t ;
 
 MM: hook-beats-stack?-2 ( thing1: rock thing2: rock |
-                          a: scissors b: scissors -- ? ) 2drop t ;
+                          a: scissors b: scissors -- ? )
+    2drop t ;
 
 MM: hook-beats-stack?-2 ( thing1: thing thing2: thing |
-                          a: thing b: thing -- ? ) 2drop f ;
+                          a: thing b: thing -- ? )
+    2drop f ;
 
 { t f } [
     paper thing1 set paper thing2 set    rock rock hook-beats-stack?
@@ -246,8 +282,7 @@ TIMES [
     { [ dup 1,000 >= ] [
           [ 1,000 / >integer ]
           [ 1,000 mod ] 
-          bi "%d,%03d" sprintf
-      ] }
+          bi "%d,%03d" sprintf ] }
     [ "%d" sprintf ]
 ] cond
 " repetitions of all combinations of rock-paper-scissors\n" 3append printf
@@ -369,6 +404,26 @@ gc
 ] benchmark
 [ 1.0e9 / ] [ no-dispatch-time get / ] bi
 "multi-hook-dispatch:        %.6f seconds (%.2f times slower)\n" printf
+
+gc
+[
+    TIMES [
+        paper    thing1 set 
+        paper    thing2 set shmd-play drop
+        scissors thing2 set shmd-play drop
+        rock     thing2 set shmd-play drop
+        
+        scissors thing1 set paper thing2 set shd-play drop scissors
+        thing2 set shd-play drop rock thing2 set shd-play drop
+        
+        rock     thing1 set 
+        paper    thing2 set shmd-play drop
+        scissors thing2 set shmd-play drop
+        rock     thing2 set shmd-play drop
+    ] times
+] benchmark
+[ 1.0e9 / ] [ no-dispatch-time get / ] bi
+"single-hook-multi-dispatch: %.6f seconds (%.2f times slower)\n" printf
 
 
 SYMBOL: ref
@@ -521,11 +576,10 @@ COMBI-TIMES [
     { [ dup 1,000 >= ] [
           [ 1,000 / >integer ]
           [ 1,000 mod ] 
-          bi "%d,%03d" sprintf
-      ] }
+          bi "%d,%03d" sprintf ] }
     [ "%d" sprintf ]
 ] cond
-" repetitions of the showdown of the combinations of No.001 to No.005\n" 3append printf
+" repetitions of the showdown of the all combinations of No.001 to No.005\n" 3append printf
 
 gc
 [
