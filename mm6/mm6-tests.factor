@@ -680,3 +680,21 @@ gc
 [ 1.0e9 / ] [ ref get / ] bi
 "single spec multi-dispatch: %.6f　seconds (%.2f times slower)\n" printf
 
+
+MGENERIC: my-plus ( a b -- c ) mathematical
+
+USING: math.private ;
+MM: my-plus ( a b: fixnum -- c ) fixnum+ ;
+MM: my-plus ( a b: bignum -- c ) bignum+ ;
+MM: my-plus ( a b: float -- c ) float+ ;
+
+USE: math.complex.private
+MM: my-plus ( a b: complex -- c ) [ my-plus ] complex-op ;
+
+USE: math.ratios.private
+MM: my-plus ( a b: ratio -- c ) scale+d [ my-plus ] [ / ] bi* ;
+
+1 2 my-plus .
+1.0 2 my-plus .
+1 2.0 my-plus .
+1/2 2/3 my-plus .

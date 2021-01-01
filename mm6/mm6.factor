@@ -2,7 +2,7 @@
 
 USING: accessors arrays assocs classes classes.algebra
 classes.algebra.private classes.maybe classes.private
-combinators combinators.private compiler.units debugger
+combinators combinators.private compiler compiler.units debugger
 definitions effects effects.parser generalizations
 generic.parser hashtables io kernel kernel.private layouts
 locals.parser make math math.order math.private multiline
@@ -15,7 +15,11 @@ FROM: generic.single.private => inline-cache-miss
 inline-cache-miss-tail lookup-method mega-cache-lookup
 mega-cache-miss ;
 IN: mm6
+
 ! USING: math.private ;
+
+! PRIMITIVE: mega-cache-lookup ( methods index cache -- )
+! PRIMITIVE: mega-cache-miss ( methods index cache -- method )
 
 : sequence-hashcode-step' ( oldhash newpart -- newhash )
   integer>fixnum swap
@@ -64,6 +68,14 @@ TUPLE: multi-single-standard-combination < multi-single-combination # ;
 
 TUPLE: multi-single-hook-combination < multi-single-combination var ;
 
+SINGLETON: multi-math-combination
+
+: make-mathematical ( word -- )
+    t "mathematical" set-word-prop ;
+
+SYNTAX: mathematical last-word make-mathematical ;
+
+
 ERROR: bad-dispatch-position # ;
 
 : <multi-single-standard-combination> ( # -- multi-single-standard-combination )
@@ -85,16 +97,17 @@ GENERIC: perform-combination ( word combination -- )
 GENERIC#: check-combination-effect 1 ( combination effect -- )
 
 GENERIC: effective-method ( generic -- method )
+\ effective-method t "no-compile" set-word-prop
 
 : methods ( word -- alist )
     "multi-methods" word-prop >alist ;
 
 :: generic-stack-effect ( generic -- effect )
-        generic
-        [ stack-effect [ in>> ] [ out>> ] bi ]
-       [ "combination-type" word-prop hooks>> ]
-         bi :> ( in out hooks )
-        hooks [ in ] [ { "|" } in 3append ] if-empty out <effect> ;
+    generic
+    [ stack-effect [ in>> ] [ out>> ] bi ]
+    [ "combination-type" word-prop hooks>> ]
+    bi :> ( in out hooks )
+    hooks [ in ] [ { "|" } in 3append ] if-empty out <effect> ;
 
 :: effect>specializer ( effect -- specializer )
     effect parse-variable-effect :> ( eff vars )
@@ -329,6 +342,7 @@ ERROR: check-method-error class generic ;
     outdated-generics get add-to-unit ;
 
 DEFER: make-generic
+
 : remake-single-generics ( -- )
     outdated-generics get members [ single-generic? ] filter
     [ make-single-generic ] each ;
@@ -338,7 +352,9 @@ DEFER: make-generic
     hook-specs length 0 = [
         stack-specs length 1 = [ stack-specs first ] [ f ] if
     ] [
-        hook-specs length 1 = [ hook-specs first ] [ f ] if
+        hook-specs length 1 = [
+            stack-specs length 0 = [ hook-specs first ] [ f ] if
+        ] [ f ] if
     ] if ;
 
 : update-single-generic ( class generic -- )
@@ -348,6 +364,9 @@ DEFER: make-generic
 DEFER: define-single-default-method
 
 :: make-generic ( generic -- )
+
+    t generic "no-compile" set-word-prop
+
     generic ?single-generic-spec dup [
         dup symbol? [
             ! single-hook-dispatch
@@ -359,19 +378,30 @@ DEFER: define-single-default-method
             var <multi-single-hook-combination>
             generic swap "single-combination" set-word-prop
         ] [
-            ! standard-single-dispatch
-            [| # |
-               generic "multi-methods" word-prop [
-                   [ dup length 1 - # - swap nth ] dip 
-               ] assoc-map
-               generic swap "methods" set-word-prop ]
-            [
-                <multi-single-standard-combination>
-                generic swap "single-combination" set-word-prop ]
-            bi
+            generic "mathematical" word-prop [
+                ! single-math-dispatch
+                drop               
+                generic "multi-methods" word-prop [
+                    [ dup length 1 - swap nth ] dip 
+                ] assoc-map
+                generic swap "methods" set-word-prop
+                multi-math-combination
+                generic swap "single-combination" set-word-prop
+            ] [
+                ! standard-single-dispatch
+                [| # |
+                    generic "multi-methods" word-prop [
+                        [ dup length 1 - # - swap nth ] dip 
+                    ] assoc-map
+                    generic swap "methods" set-word-prop ]
+                [
+                    <multi-single-standard-combination>
+                    generic swap "single-combination" set-word-prop ]
+                bi
+            ] if
         ] if
         generic make-single-generic
-        generic dup "single-combination" word-prop 
+        generic dup "single-combination" word-prop
         define-single-default-method
     ] [
         ! multi-dispach
@@ -400,6 +430,8 @@ M: method-body stack-effect
 
 M: method-body crossref?
     "forgotten" word-prop not ;
+
+M: method-body no-compile? "multi-method-generic" word-prop no-compile? ;
 
 : method-word-name ( specializer generic -- string )
     [ name>> % " " % unparse % ] "" make ;
@@ -587,11 +619,38 @@ SYMBOL: single-combination
 
 HOOK: [picker] single-combination ( -- quot )
 
+
+<PRIVATE
+
+: interesting-class? ( class1 class2 -- ? )
+    {
+        ! Case 1: no intersection. Discard and keep going
+        { [ 2dup classes-intersect? not ] [ 2drop t ] }
+        ! Case 2: class1 contained in class2. Add to
+        ! interesting set and keep going.
+        { [ 2dup class<= ] [ nip , t ] }
+        ! Case 3: class1 and class2 are incomparable. Give up
+        [ 2drop f ]
+    } cond ;
+
+: interesting-classes ( class classes -- interesting/f )
+    [ [ interesting-class? ] with all? ] { } make and ;
+
+PRIVATE>
+
 : method-classes ( generic -- classes )
     "methods" word-prop keys ;
 
+: nearest-class ( class generic -- class/f )
+    method-classes interesting-classes smallest-class ;
+
+ERROR: method-lookup-failed class generic ;
+
 : ?lookup-method ( class generic -- method/f )
     "methods" word-prop at ;
+
+: lookup-method' ( class generic -- method )
+    2dup ?lookup-method [ 2nip ] [ method-lookup-failed ] if* ;
 
 : method-for-object ( obj word -- method )
     [
@@ -834,15 +893,15 @@ PREDICATE: default-method < word "default" word-prop ;
 
 : single-method-word-props ( class generic -- assoc )
     [
-        "single-method-generic" ,,
-        "single-method-class" ,,
+        "method-generic" ,,
+        "method-class" ,,
     ] H{ } make ;
 
 : single-method-word-name ( class generic -- string )
     [ class-name ] [ name>> ] bi* "=>" glue ;
 
-! M: method parent-word
-!    "single-method-generic" word-prop ;
+M: method-body parent-word
+    "multi-method-generic" word-prop ;
 
 : <single-method> ( class generic -- method )
     check-single-method
@@ -917,7 +976,7 @@ M: multi-single-standard-combination inline-cache-quots
     mega-cache-size get f <array> ;
 
 M: multi-single-standard-combination mega-cache-quot
-    single-combination get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence ;
+     single-combination get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence ;
 
 
 ! ! ! ! hook ! ! ! !
@@ -937,3 +996,125 @@ M: multi-single-hook-combination mega-cache-quot
 
 M: multi-single-hook-generic effective-method
     [ "single-combination" word-prop var>> get ] keep method-for-object ;
+
+
+! ! ! ! math ! ! ! !
+
+PREDICATE: multi-math-class < class
+    dup null bootstrap-word eq? [
+        drop f
+    ] [
+        number bootstrap-word class<=
+    ] if ;
+
+<PRIVATE
+
+: bootstrap-words ( classes -- classes' )
+    [ bootstrap-word ] map ;
+
+: math-precedence ( class -- pair )
+    [
+        { fixnum integer rational real number object } bootstrap-words
+        swap [ swap class<= ] curry find drop -1 or
+    ] [
+        { fixnum bignum ratio float complex object } bootstrap-words
+        swap [ class<= ] curry find drop -1 or
+    ] bi 2array ;
+
+: (math-upgrade) ( max class -- quot )
+    dupd = [ drop [ ] ] [ "coercer" word-prop [ ] or ] if ;
+
+PRIVATE>
+
+: math-class-max ( class1 class2 -- class )
+    [ [ math-precedence ] bi@ after? ] most ;
+
+: math-upgrade ( class1 class2 -- quot )
+    [ math-class-max ] 2keep [ (math-upgrade) ] bi-curry@ bi
+    [ dup empty? [ [ dip ] curry ] unless ] dip [ ] append-as ;
+
+ERROR: no-multi-math-method left right generic ;
+
+: default-multi-math-method ( generic -- quot )
+    [ no-multi-math-method ] curry [ ] like ;
+
+<PRIVATE
+
+: (math-method) ( generic class -- quot )
+    over ?lookup-method
+    [ 1quotation ]
+    [ default-multi-math-method ] ?if ;
+
+PRIVATE>
+
+: object-method ( generic -- quot )
+    object bootstrap-word (math-method) ;
+
+: multi-math-method ( word class1 class2 -- quot )
+    2dup and [
+        [ 2array [ declare ] curry nip ]
+        [ math-upgrade nip ]
+        [ math-class-max over nearest-class (math-method) ]
+        3tri 3append
+    ] [
+        2drop object-method
+    ] if ;
+
+<PRIVATE
+
+: make-math-method-table ( classes quot: ( ... class -- ... quot ) -- alist )
+    [ bootstrap-words ] dip [ keep swap ] curry { } map>assoc ; inline
+
+: math-alist>quot ( alist -- quot )
+    [ generic-word get object-method ] dip alist>quot ;
+
+: tag-dispatch-entry ( tag picker -- quot )
+    [ "type" word-prop 1quotation [ tag ] [ eq? ] surround ] dip prepend ;
+
+: tag-dispatch ( picker alist -- alist' )
+    swap [ [ tag-dispatch-entry ] curry dip ] curry assoc-map math-alist>quot ;
+
+: tuple-dispatch-entry ( class picker -- quot )
+    [ 1quotation [ { tuple } declare class-of ] [ eq? ] surround ] dip prepend ;
+
+: tuple-dispatch ( picker alist -- alist' )
+    swap [ [ tuple-dispatch-entry ] curry dip ] curry assoc-map math-alist>quot ;
+
+: math-dispatch-step ( picker quot: ( ... class -- ... quot ) -- quot )
+    [ { bignum float fixnum } swap make-math-method-table ]
+    [ { ratio complex } swap make-math-method-table tuple-dispatch ] 2bi
+    tuple swap 2array prefix tag-dispatch ; inline
+
+: fixnum-optimization ( word quot -- word quot' )
+    [ dup fixnum bootstrap-word dup multi-math-method ]
+    [
+        ! remove redundant fixnum check since we know
+        ! both can't be fixnums in this branch
+        dup length 3 - cut unclip
+        [ length 2 - ] [ nth ] bi prefix append
+    ] bi*
+    [ if ] 2curry [ 2dup both-fixnums? ] prepend ;
+
+PRIVATE>
+
+
+M: multi-math-combination make-single-default-method
+    drop default-multi-math-method ;
+
+M: multi-math-combination perform-combination
+    drop dup generic-word [
+        dup [ over ] [
+            dup multi-math-class? [
+                [ dup ] [ multi-math-method ] 2with math-dispatch-step
+            ] [
+                drop object-method
+            ] if
+        ] with math-dispatch-step
+        fixnum-optimization
+        define
+    ] with-variable ;
+
+PREDICATE: multi-math-generic < mm-generic
+    "single-combination" word-prop multi-math-combination? ;
+
+! M: math-generic definer drop \ MATH: f ;
