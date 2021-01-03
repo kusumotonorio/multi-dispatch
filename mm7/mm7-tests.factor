@@ -706,6 +706,28 @@ MM:: md-beats2? ( thing1: thing thing2: thing -- ? ) thing2 thing1 "%s doesn't b
 ] unit-test
 
 
+MGENERIC: smd-beats2? ( obj1 obj2 -- ? )
+
+MM:: smd-beats2? ( obj1 obj2: paper -- ? )    obj1 rock? [ t ] [ f ] if obj1 "%s vs. paper\n" printf ; 
+MM:: smd-beats2? ( obj1 obj2: scissors -- ? ) obj1 paper? [ t ] [ f ] if obj1 obj2 "%s vs. %s\n" printf ;
+MM:: smd-beats2? ( o1 o2: rock -- ? )         o1 scissors? [ t ] [ f ] if o1 "%s vs. rock\n" printf ;
+
+: smd-play2 ( obj1 obj2 -- ? ) smd-beats2? ;
+
+{ f t f  f f t  t f f } [
+    paper paper       smd-play2
+    paper scissors    smd-play2
+    paper rock        smd-play2
+    
+    scissors paper    smd-play2
+    scissors scissors smd-play2
+    scissors rock     smd-play2
+    
+    rock paper        smd-play2
+    rock scissors     smd-play2
+    rock rock         smd-play2
+] unit-test
+
 
 ! TUPLE: test-tuple1 ;
 
