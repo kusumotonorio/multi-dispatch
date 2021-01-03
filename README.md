@@ -11,3 +11,6 @@ Dispatching with Caching
 
 ### mm6
 Generate code similar to the generic word for single dispatch when there is only one specializer
+
+### mm7
+Local variables can be used in the definition by `MM::`. Trying to realize `call-next-multi-method`.
