@@ -536,8 +536,11 @@ M: invalid-math-method-parameter summary
 
 :: create-method-in ( effect specializer generic -- method )
     generic "mathematical" word-prop [
-        specializer [ t [ array? not and ] reduce ] [ length 2 = ] [ first2 = ] tri
-        and and [
+        specializer {
+            [ t [ array? not and ] reduce ]
+            [ length 2 = ]
+            [ first2 = ] 
+        } 1&& [
             invalid-math-method-parameter
         ] unless 
     ] when
