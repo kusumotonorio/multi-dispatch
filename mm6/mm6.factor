@@ -8,8 +8,8 @@ generic.parser hashtables io kernel kernel.private layouts
 locals.parser make math math.order math.private multiline
 namespaces parser prettyprint prettyprint.backend
 prettyprint.custom prettyprint.sections quotations see sequences
-sequences.generalizations sets shuffle sorting splitting vectors
-words words.symbol ;
+sequences.generalizations sets shuffle sorting splitting summary
+vectors words words.symbol ;
 FROM: namespaces => set ;
 FROM: generic.single.private => inline-cache-miss
 inline-cache-miss-tail lookup-method mega-cache-lookup
@@ -364,53 +364,50 @@ DEFER: make-generic
 DEFER: define-single-default-method
 
 :: make-generic ( generic -- )
-
-    t generic "no-compile" set-word-prop
-
-    generic ?single-generic-spec dup [
-        dup symbol? [
-            ! single-hook-dispatch
-            :> var
-            generic "multi-methods" word-prop [
-                [ dup length 1 - swap nth second ] dip 
-            ] assoc-map
-            generic swap "methods" set-word-prop
-            var <multi-single-hook-combination>
-            generic swap "single-combination" set-word-prop
-        ] [
-            generic "mathematical" word-prop [
-                ! single-math-dispatch
-                drop               
+    generic "mathematical" word-prop [
+        ! single-math-dispatch
+        generic "multi-methods" word-prop [
+            [ dup length 1 - swap nth ] dip 
+        ] assoc-map generic swap "methods" set-word-prop
+        multi-math-combination dup
+        generic swap "single-combination" set-word-prop
+        generic make-single-generic
+        generic swap define-single-default-method
+    ] [
+        generic ?single-generic-spec dup [
+            dup symbol? [
+                ! single-hook-dispatch
+                :> var
                 generic "multi-methods" word-prop [
-                    [ dup length 1 - swap nth ] dip 
+                    [ dup length 1 - swap nth second ] dip 
                 ] assoc-map
                 generic swap "methods" set-word-prop
-                multi-math-combination
+                var <multi-single-hook-combination>
                 generic swap "single-combination" set-word-prop
             ] [
                 ! standard-single-dispatch
                 [| # |
                     generic "multi-methods" word-prop [
                         [ dup length 1 - # - swap nth ] dip 
-                    ] assoc-map
-                    generic swap "methods" set-word-prop ]
+                 ] assoc-map
+                 generic swap "methods" set-word-prop ]
                 [
                     <multi-single-standard-combination>
                     generic swap "single-combination" set-word-prop ]
                 bi
             ] if
+            generic dup "single-combination" word-prop
+            generic make-single-generic
+            define-single-default-method
+        ] [
+            ! multi-dispach
+            drop
+            generic
+            [
+                [ methods prepare-methods % sort-methods ] keep
+                multi-dispatch-quot %
+            ] [ ] make generic swap define
         ] if
-        generic make-single-generic
-        generic dup "single-combination" word-prop
-        define-single-default-method
-    ] [
-        ! multi-dispach
-        drop
-        generic
-        [
-            [ methods prepare-methods % sort-methods ] keep
-            multi-dispatch-quot %
-        ] [ ] make generic swap define
     ] if ;
 
 ! :: make-generic ( generic -- )
@@ -531,8 +528,20 @@ SYNTAX: MGENERIC: scan-new-word scan-effect
     parse-variable-effect
     define-generic ;
 
-: create-method-in ( effect specializer generic -- method )
-    create-method dup save-location f set-last-word ;
+ERROR: invalid-math-method-parameter ;
+
+M: invalid-math-method-parameter summary
+    drop
+    "Mathematical multi-method's parameters are two stack parameters of the same class." ;
+
+:: create-method-in ( effect specializer generic -- method )
+    generic "mathematical" word-prop [
+        specializer [ t [ array? not and ] reduce ] [ length 2 = ] [ first2 = ] tri
+        and and [
+            invalid-math-method-parameter
+        ] unless 
+    ] when
+    effect specializer generic create-method dup save-location f set-last-word ;
 
 : scan-new-method ( -- method )
     scan-word scan-effect

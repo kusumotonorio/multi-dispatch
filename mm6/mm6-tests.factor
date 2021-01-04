@@ -684,17 +684,19 @@ gc
 MGENERIC: my-plus ( a b -- c ) mathematical
 
 USING: math.private ;
-MM: my-plus ( a b: fixnum -- c ) fixnum+ ;
-MM: my-plus ( a b: bignum -- c ) bignum+ ;
-MM: my-plus ( a b: float -- c ) float+ ;
+MM: my-plus ( a: fixnum b: fixnum -- c ) fixnum+ ;
+MM: my-plus ( a: bignum b: bignum -- c ) bignum+ ;
+MM: my-plus ( a: float b: float -- c ) float+ ;
 
 USE: math.complex.private
-MM: my-plus ( a b: complex -- c ) [ my-plus ] complex-op ;
+MM: my-plus ( a: complex b: complex -- c ) [ my-plus ] complex-op ;
 
 USE: math.ratios.private
-MM: my-plus ( a b: ratio -- c ) scale+d [ my-plus ] [ / ] bi* ;
+MM: my-plus ( a: ratio b: ratio -- c ) scale+d [ my-plus ] [ / ] bi* ;
 
 1 2 my-plus .
 1.0 2 my-plus .
 1 2.0 my-plus .
 1/2 2/3 my-plus .
+0.5 1/2 my-plus .
+C{ 0 -1 } 2.0 my-plus .
