@@ -2,14 +2,14 @@
 
 USING: accessors arrays assocs classes classes.algebra
 classes.algebra.private classes.maybe classes.private
-combinators combinators.private compiler compiler.units debugger
-definitions effects effects.parser generalizations
-generic.parser hashtables io kernel kernel.private layouts
-locals.parser make math math.order math.private multiline
-namespaces parser prettyprint prettyprint.backend
-prettyprint.custom prettyprint.sections quotations see sequences
-sequences.generalizations sets shuffle sorting splitting summary
-vectors words words.symbol ;
+combinators combinators.private combinators.short-circuit
+compiler compiler.units debugger definitions effects
+effects.parser generalizations generic.parser hashtables io
+kernel kernel.private layouts locals.parser make math math.order
+math.private multiline namespaces parser prettyprint
+prettyprint.backend prettyprint.custom prettyprint.sections
+quotations see sequences sequences.generalizations sets shuffle
+sorting splitting summary vectors words words.symbol ;
 FROM: namespaces => set ;
 FROM: generic.single.private => inline-cache-miss
 inline-cache-miss-tail lookup-method mega-cache-lookup
