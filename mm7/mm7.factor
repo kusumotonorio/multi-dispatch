@@ -2,14 +2,14 @@
 
 USING: accessors arrays assocs classes classes.algebra
 classes.algebra.private classes.maybe classes.private
-combinators combinators.private compiler compiler.units debugger
-definitions effects effects.parser generalizations
-generic.parser hashtables io kernel kernel.private layouts
-locals.parser make math math.order math.private multiline
-namespaces parser prettyprint prettyprint.backend
-prettyprint.custom prettyprint.sections quotations see sequences
-sequences.generalizations sets shuffle sorting splitting summary
-vectors words words.symbol ;
+combinators combinators.private combinators.short-circuit
+compiler compiler.units debugger definitions effects
+effects.parser generalizations generic.parser hashtables io
+kernel kernel.private layouts locals.parser make math math.order
+math.private multiline namespaces parser prettyprint
+prettyprint.backend prettyprint.custom prettyprint.sections
+quotations see sequences sequences.generalizations sets shuffle
+sorting splitting summary vectors words words.symbol ;
 FROM: namespaces => set ;
 FROM: generic.single.private => inline-cache-miss
 inline-cache-miss-tail lookup-method mega-cache-lookup
@@ -17,9 +17,6 @@ mega-cache-miss ;
 IN: mm7
 
 ! USING: math.private ;
-
-! PRIMITIVE: mega-cache-lookup ( methods index cache -- )
-! PRIMITIVE: mega-cache-miss ( methods index cache -- method )
 
 : sequence-hashcode-step' ( oldhash newpart -- newhash )
   integer>fixnum swap
@@ -59,6 +56,10 @@ PREDICATE: single-generic < word
 
 PREDICATE: method-body < word
     "multi-method-generic" word-prop >boolean ;
+
+M: method-body no-compile? "multi-method-generic" word-prop no-compile? ;
+
+M: method-body combinator? "multi-method-generic" word-prop combinator? ;
 
 ! SYMBOL: combination
 
@@ -365,53 +366,50 @@ DEFER: make-generic
 DEFER: define-single-default-method
 
 :: make-generic ( generic -- )
-
-    t generic "no-compile" set-word-prop
-
-    generic ?single-generic-spec dup [
-        dup symbol? [
-            ! single-hook-dispatch
-            :> var
-            generic "multi-methods" word-prop [
-                [ dup length 1 - swap nth second ] dip 
-            ] assoc-map
-            generic swap "methods" set-word-prop
-            var <multi-single-hook-combination>
-            generic swap "single-combination" set-word-prop
-        ] [
-            generic "mathematical" word-prop [
-                ! single-math-dispatch
-                drop               
+    generic "mathematical" word-prop [
+        ! single-math-dispatch
+        generic "multi-methods" word-prop [
+            [ dup length 1 - swap nth ] dip 
+        ] assoc-map generic swap "methods" set-word-prop
+        multi-math-combination dup
+        generic swap "single-combination" set-word-prop
+        generic make-single-generic
+        generic swap define-single-default-method
+    ] [
+        generic ?single-generic-spec dup [
+            dup symbol? [
+                ! single-hook-dispatch
+                :> var
                 generic "multi-methods" word-prop [
-                    [ dup length 1 - swap nth ] dip 
+                    [ dup length 1 - swap nth second ] dip 
                 ] assoc-map
                 generic swap "methods" set-word-prop
-                multi-math-combination
+                var <multi-single-hook-combination>
                 generic swap "single-combination" set-word-prop
             ] [
                 ! standard-single-dispatch
                 [| # |
                     generic "multi-methods" word-prop [
                         [ dup length 1 - # - swap nth ] dip 
-                    ] assoc-map
-                    generic swap "methods" set-word-prop ]
+                 ] assoc-map
+                 generic swap "methods" set-word-prop ]
                 [
                     <multi-single-standard-combination>
                     generic swap "single-combination" set-word-prop ]
                 bi
             ] if
+            generic dup "single-combination" word-prop
+            generic make-single-generic
+            define-single-default-method
+        ] [
+            ! multi-dispach
+            drop
+            generic
+            [
+                [ methods prepare-methods % sort-methods ] keep
+                multi-dispatch-quot %
+            ] [ ] make generic swap define
         ] if
-        generic make-single-generic
-        generic dup "single-combination" word-prop
-        define-single-default-method
-    ] [
-        ! multi-dispach
-        drop
-        generic
-        [
-            [ methods prepare-methods % sort-methods ] keep
-            multi-dispatch-quot %
-        ] [ ] make generic swap define
     ] if ;
 
 ! :: make-generic ( generic -- )
@@ -431,8 +429,6 @@ M: method-body stack-effect
 
 M: method-body crossref?
     "forgotten" word-prop not ;
-
-M: method-body no-compile? "multi-method-generic" word-prop no-compile? ;
 
 : method-word-name ( specializer generic -- string )
     [ name>> % " " % unparse % ] "" make ;
@@ -520,10 +516,12 @@ M: no-method error.
     [ over swap set-stack-effect ] dip
     over "combination-type" word-prop hooks<<
 !    dup "multi-methods" word-prop [ drop ] [              ! ???
+    {
         [ H{ } clone "multi-methods" set-word-prop ]
         [ "combination-type" word-prop H{ } clone swap method-cache<< ]
+        ! [ t "no-compile" set-word-prop ]
         [ update-generic ]
-        tri
+    } cleave
 !    ] if 
 ;
 
@@ -532,8 +530,23 @@ SYNTAX: MGENERIC: scan-new-word scan-effect
     parse-variable-effect
     define-generic ;
 
-: create-method-in ( effect specializer generic -- method )
-    create-method dup save-location f set-last-word ;
+ERROR: invalid-math-method-parameter ;
+
+M: invalid-math-method-parameter summary
+    drop
+    "Mathematical multi-method's parameters are two stack parameters of the same class." ;
+
+:: create-method-in ( effect specializer generic -- method )
+    generic "mathematical" word-prop [
+        specializer {
+            [ t [ array? not and ] reduce ]
+            [ length 2 = ]
+            [ first2 = ] 
+        } 1&& [
+            invalid-math-method-parameter
+        ] unless 
+    ] when
+    effect specializer generic create-method dup save-location f set-last-word ;
 
 : scan-new-method ( -- method )
     scan-word scan-effect
@@ -812,6 +825,10 @@ M: tuple-dispatch-engine compile-engine
 
 PREDICATE: predicate-engine-word < word "owner-generic" word-prop ;
 
+M: predicate-engine-word no-compile? "owner-generic" word-prop no-compile? ;
+
+M: predicate-engine-word combinator? "owner-generic" word-prop combinator? ;
+
 SYMBOL: predicate-engines
 
 : sort-single-methods ( assoc -- assoc' )
@@ -998,9 +1015,12 @@ M: multi-single-standard-combination inline-cache-quots
 : make-empty-cache ( -- array )
     mega-cache-size get f <array> ;
 
-M: multi-single-standard-combination mega-cache-quot
-     single-combination get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence ;
+! M: multi-single-standard-combination mega-cache-quot
+!    single-combination get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence ;
 
+M: multi-single-standard-combination mega-cache-quot
+    single-combination get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence
+    [ call( -- ) ] curry ;
 
 ! ! ! ! hook ! ! ! !
 
@@ -1140,8 +1160,6 @@ M: multi-math-combination perform-combination
 PREDICATE: multi-math-generic < mm-generic
     "single-combination" word-prop multi-math-combination? ;
 
-! M: math-generic definer drop \ MATH: f ;
-
 ! ---------------------------------------------------------------------------
 ! UNDER CONSTRUCTION
 
@@ -1149,46 +1167,36 @@ SYMBOL: next-multi-method-quot-cache
 
 H{ } clone next-method-quot-cache set
 
-: smallest-classes ( classes-set -- classes/f )
-    [ f ] [
-        [ [ first ] bi@ classes< ] topological-sort <reversed>
-        [ ] [ [ classes< ] most ] map-reduce                   ! !!!! classes<=
-    ] if-empty ;
-
-: multi-method-classes ( generic -- classes-set )
-    "multi-method" word-prop keys ;
-
-: next-multi-method-classes ( classes generic -- classes/f )
-    multi-method-classes [ classes< ] with filter smallest-classes ;
-
-: next-multi-method ( classes generic -- method/f )
-    [ next-multi-method-classes ] keep ?lookup-method ;
-
 GENERIC: next-multi-method-quot* ( classes generic combination -- quot )
 
-ERROR: inconsistent-next-multi-method class generic ;
+ERROR: inconsistent-next-multi-method classes generic ;
 
-M: multi-single-combination next-multi-method-quot*
-    [
-        2dup next-multi-method [
-            [
-                [ [picker] % ] 3dip
-                [ dup predicate-def % ] 2dip
-                1quotation ,
-                [ inconsistent-next-multi-method ] 2curry ,
-                \ if ,
-            ] [ ] make
-        ] [ 2drop f ] if*
+M:: multi-single-combination next-multi-method-quot*
+    ( classes generic combination -- quot )
+    combination [
+        [ classes generic inconsistent-next-multi-method ]
+        generic methods prepare-methods drop sort-methods
+        [ drop classes classes< +gt+ = ] assoc-filter
+        [ [ multi-predicate ] dip ] assoc-map reverse!
+        alist>quot
     ] with-single-combination ;
 
+! M:: f next-multi-method-quot* ( classes generic combination -- quot )
+!         [ classes generic inconsistent-next-multi-method ]
+!         generic methods prepare-methods drop sort-methods
+!         [ drop classes swap classes< +gt+ = ] assoc-filter
+!         [ [ multi-predicate ] dip ] assoc-map reverse!
+!         alist>quot ;
+ 
 : next-multi-method-quot ( method -- quot )
-    next-multi-method-quot-cache get [
+    ! next-multi-method-quot-cache get [
         [ "multi-method-specializer" word-prop ]
         [
             "multi-method-generic" word-prop
-            dup "combination-type" word-prop ]
-        bi next-multi-method-quot*
-    ] cache ;
+            dup "single-combination" word-prop
+        ] bi next-multi-method-quot*
+    ! ] cache 
+;
 
 ERROR: no-next-multi-method method ;
 
@@ -1199,12 +1207,11 @@ M: not-in-a-multi-method-error summary
     "call-next-multi-method can only be called in a multi-method definition" ;
 
 : (call-next-multi-method) ( method -- )
-    dup 
-    next-multi-method-quot [ call ] [ no-next-multi-method ] ?if ;
+    dup next-multi-method-quot [ call ] [ no-next-multi-method ] ?if ;
+
+\ (call-next-multi-method) t "no-compile" set-word-prop
 
 SYNTAX: call-next-multi-method
-    current-method get
-    [ literalize suffix! \ (call-next-multi-method) suffix! ]
-    [ not-in-a-multi-method-error ] if* ;
-
-
+   current-method get
+   [ literalize suffix! \ (call-next-multi-method) suffix! ]
+   [ not-in-a-multi-method-error ] if* ;

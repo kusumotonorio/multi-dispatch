@@ -680,6 +680,27 @@ gc
 [ 1.0e9 / ] [ ref get / ] bi
 "single spec multi-dispatch: %.6f　seconds (%.2f times slower)\n" printf
 
+MGENERIC: my-plus ( a b -- c ) mathematical
+
+USING: math.private ;
+MM: my-plus ( a: fixnum b: fixnum -- c ) fixnum+ ;
+MM: my-plus ( a: bignum b: bignum -- c ) bignum+ ;
+MM: my-plus ( a: float b: float -- c ) float+ ;
+
+USE: math.complex.private
+MM: my-plus ( a: complex b: complex -- c ) [ my-plus ] complex-op ;
+
+USE: math.ratios.private
+MM: my-plus ( a: ratio b: ratio -- c ) scale+d [ my-plus ] [ / ] bi* ;
+
+{ 3 3.0 3.0 1+1/6 1.0 C{ 2.0 -1 } } [
+    1 2 my-plus
+    1.0 2 my-plus
+    1 2.0 my-plus
+    1/2 2/3 my-plus
+    0.5 1/2 my-plus
+    C{ 0 -1 } 2.0 my-plus
+] unit-test
 
 
 MGENERIC: md-beats2? ( obj1 obj2 -- ? )
@@ -729,16 +750,26 @@ MM:: smd-beats2? ( o1 o2: rock -- ? )         o1 scissors? [ t ] [ f ] if o1 "%s
 ] unit-test
 
 
-! TUPLE: test-tuple1 ;
+TUPLE: test-tuple1 ;
+TUPLE: test-tuple2 < test-tuple1 ;
+TUPLE: test-tuple3 < test-tuple2 ;
 
-! TUPLE: test-tuple2 < test-tuple1 ;
+MGENERIC: next-method-test ( class -- who-am-i )
 
-! MGENERIC: next-method-test ( class -- who-am-i )
+MM: next-method-test ( class: test-tuple1 -- who-am-i )
+    drop "test-tuple1" ;
 
-! MM: next-method-test ( class: test-tuple1 -- who-am-i )
-!     drop "test-tuple1" ;
+MM: next-method-test ( class: test-tuple2 -- who-am-i )
+    call-next-multi-method ;
 
-! MM: next-method-test ( class: test-tuple2 -- who-am-i )
-!     "subclass of " swap call-next-multi-method 2array concat ;
+MM: next-method-test ( class: test-tuple3 -- who-am-i )
+    drop "test-tuple3" ;
 
-! test-tuple2 new next-method-test .
+
+test-tuple2 new next-method-test .
+
+! MM\ next-method-test ( :test-tuple2 -- x ) next-multi-method-quot .
+
+! test-tuple2 new MM\ next-method-test ( :test-tuple2 -- x ) (call-next-multi-method)
+
+
