@@ -751,11 +751,11 @@ MM:: smd-beats2? ( o1 o2: rock -- ? )         o1 scissors? [ t ] [ f ] if o1 "%s
 
 
 
-TUPLE: test-tuple1 ;
-TUPLE: test-tuple2 < test-tuple1 ;
-TUPLE: test-tuple3 < test-tuple2 ;
+! TUPLE: test-tuple1 ;
+! TUPLE: test-tuple2 < test-tuple1 ;
+! TUPLE: test-tuple3 < test-tuple2 ;
 
-! MGENERIC: next-method-test ( class -- who-am-i )
+! MGENERIC: next-method-test ( class -- who-i-am )
 
 ! MM: next-method-test ( class: test-tuple1 -- who-i-am )
 !     drop "test-tuple1" ;

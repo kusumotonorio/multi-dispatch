@@ -5,7 +5,7 @@ classes.algebra.private classes.maybe classes.private
 combinators combinators.private combinators.short-circuit
 compiler compiler.units debugger definitions effects
 effects.parser generalizations hashtables io kernel
-kernel.private layouts locals.parser make math math.order
+kernel.private layouts locals locals.parser make math math.order
 math.private multiline namespaces parser prettyprint
 prettyprint.backend prettyprint.custom prettyprint.sections
 quotations see sequences sequences.generalizations sets shuffle
@@ -29,36 +29,36 @@ M: multi-method no-compile?
 M: multi-method combinator?
     "multi-generic" word-prop combinator? ;
 
-TUPLE: multi-combination ;
+TUPLE: multi-dispatch ;
 
-TUPLE: single-combination ;
+TUPLE: non-multi-dispatch methods ;
 
-TUPLE: single-standard-combination < single-combination # ;
+TUPLE: single-dispatch < non-multi-dispatch ;
 
-TUPLE: single-hook-combination < single-combination var ;
+TUPLE: single-standard-dispatch < single-dispatch # ;
 
-SINGLETON: math-combination
+TUPLE: single-hook-dispatch < single-dispatch var ;
 
-: single-generic? ( word -- ? )
-    "combination-type" word-prop {
-        [ single-combination instance? ]
-        [ math-combination instance? ]
-    } 1|| ;
+TUPLE: math-dispatch < non-multi-dispatch ;
+
+: non-multi-generic? ( word -- ? )
+    "dispatch-type" word-prop non-multi-dispatch? ; inline
 
 ERROR: bad-dispatch-position # ;
 
-: <single-standard-combination> ( # -- single-standard-combination )
+: <single-standard-dispatch> ( # -- single-standard-dispatch )
     dup integer? [ dup 0 < ] [ t ] if
     [ bad-dispatch-position ] when
-    single-standard-combination boa ;
+    f swap single-standard-dispatch boa ;
 
-C: <single-hook-combination> single-hook-combination
+: <single-hook-dispatch> ( var -- single-hook-dispatch )
+    f swap single-hook-dispatch boa ;
 
-GENERIC: make-single-default-method ( generic combination -- method )
+GENERIC: make-single-default-method ( generic dispatch -- method )
 
-GENERIC: perform-combination ( word combination -- )
+GENERIC: perform-dispatch ( word dispatch -- )
 
-GENERIC#: check-combination-effect 1 ( combination effect -- )
+GENERIC#: check-dispatch-effect 1 ( dispatch effect -- )
 
 GENERIC: effective-method ( generic -- method )
 
@@ -84,9 +84,7 @@ GENERIC: effective-method ( generic -- method )
                     ] [ parse-word ] if
                 ] map
             ] dip
-        ] [ 
-            { } clone swap 
-        ] if* ] 
+        ] [ { } clone swap ] if* ] 
     [ out>> ]
     bi <effect> swap ;
 
@@ -101,10 +99,6 @@ GENERIC: effective-method ( generic -- method )
     ] map
     vars append ;
 
-! : with-combination ( combination quot -- )
-!    [ combination ] dip with-variable ; inline
-
-
 : picker ( n -- quot )
     {
         { 0 [ [ dup ] ] }
@@ -112,8 +106,6 @@ GENERIC: effective-method ( generic -- method )
         { 2 [ [ pick ] ] }
         [ 1 - picker [ dip swap ] curry ]
     } case ;
-
-! ---------------------------------------------------------------
 
 ! PART I: Converting hook specializers
 : canonicalize-specializer-0 ( specializer -- specializer' )
@@ -173,7 +165,9 @@ SYMBOL: total
 : maximal-element ( seq quot -- n elt )
     dupd [
         swapd [ call +lt+ = ] 2curry none?
-    ] 2curry find [ "Topological sort failed" throw ] unless* ; inline
+    ] 2curry find [
+        "Topological sort failed" throw
+    ] unless* ; inline
 
 : topological-sort ( seq quot -- newseq )
     [ >vector [ dup empty? not ] ] dip
@@ -256,13 +250,13 @@ ERROR: no-method arguments generic ;
 
 : make-single-generic ( word -- )
     [ "unannotated-def" remove-word-prop ]
-    [ dup "combination-type" word-prop perform-combination ]
+    [ dup "dispatch-type" word-prop perform-dispatch ]
     bi ;
 
 ERROR: check-method-error class generic ;
 
 : check-single-method ( classoid generic -- class generic )
-    2dup [ classoid? ] [ single-generic? ] bi* and [
+    2dup [ classoid? ] [ non-multi-generic? ] bi* and [
         check-method-error
     ] unless ; inline
 
@@ -272,7 +266,7 @@ ERROR: check-method-error class generic ;
 DEFER: make-generic
 
 : remake-single-generics ( -- )
-    outdated-generics get members [ single-generic? ] filter
+    outdated-generics get members [ non-multi-generic? ] filter
     [ make-single-generic ] each ;
 
 :: ?single-generic-spec ( generic -- n/var/f )
@@ -294,43 +288,42 @@ DEFER: define-single-default-method
 :: make-generic ( generic -- )
     generic "mathematical" word-prop [
         ! math-dispatch
+        math-dispatch new dup
+        generic swap "dispatch-type" set-word-prop
         generic "multi-methods" word-prop [
             [ dup length 1 - swap nth ] dip 
-        ] assoc-map generic swap "methods" set-word-prop
-        math-combination dup
-        generic swap "combination-type" set-word-prop
+        ] assoc-map generic "dispatch-type" word-prop methods<<
         generic make-single-generic
         generic swap define-single-default-method
     ] [
         generic ?single-generic-spec dup [
             dup symbol? [
                 ! hook-dispatch
-                :> var
+                <single-hook-dispatch>
+                generic swap "dispatch-type" set-word-prop
                 generic "multi-methods" word-prop [
                     [ dup length 1 - swap nth second ] dip 
                 ] assoc-map
-                generic swap "methods" set-word-prop
-                var <single-hook-combination>
-                generic swap "combination-type" set-word-prop
+                generic "dispatch-type" word-prop methods<<
             ] [
                 ! single-dispatch
+                [
+                    <single-standard-dispatch>
+                    generic swap "dispatch-type" set-word-prop ]
                 [| # |
                     generic "multi-methods" word-prop [
                         [ dup length 1 - # - swap nth ] dip 
                  ] assoc-map
-                 generic swap "methods" set-word-prop ]
-                [
-                    <single-standard-combination>
-                    generic swap "combination-type" set-word-prop ]
+                 generic "dispatch-type" word-prop methods<< ]
                 bi
             ] if
-            generic dup "combination-type" word-prop
+            generic dup "dispatch-type" word-prop
             generic make-single-generic
             define-single-default-method
         ] [
             ! multi-dispach
             drop
-            generic multi-combination new "combination-type" set-word-prop
+            generic multi-dispatch new "dispatch-type" set-word-prop
             generic
             [
                 [ methods prepare-methods % sort-methods ] keep
@@ -386,7 +379,7 @@ M: anonymous-intersection implementor-classes participants>> ;
     ] dip call ; inline
 
 : with-single-methods ( class generic quot -- )
-    [ "methods" word-prop ] prepose [ update-single-generic ] 2bi ; inline
+    [ "dispatch-type" word-prop methods>> ] prepose [ update-single-generic ] 2bi ; inline
 
 : reveal-single-method ( method classes generic -- )
     [ [ [ adjoin ] with each ] with-implementors ]
@@ -556,27 +549,27 @@ ERROR: no-single-method object generic ;
 
 ! ERROR: inconsistent-next-method class generic ;
 
-! TUPLE: single-combination ;
+! TUPLE: single-dispatch ;
 
 PREDICATE: multi-single-generic < multi-generic
-    "combination-type" word-prop single-combination? ;
+    "dispatch-type" word-prop single-dispatch? ;
 
 M: multi-single-generic make-inline cannot-be-inline ;
 
 GENERIC: single-dispatch# ( word -- n )
 
 M: multi-generic single-dispatch#
-    "combination-type" word-prop single-dispatch# ;
+    "dispatch-type" word-prop single-dispatch# ;
 
 SYMBOL: assumed
 SYMBOL: default
 SYMBOL: generic-word
-SYMBOL: single-combination
+SYMBOL: single-dispatch
 
-: with-single-combination ( single-combination quot -- )
-     [ single-combination ] dip with-variable ; inline
+: with-single-dispatch ( single-dispatch quot -- )
+     [ single-dispatch ] dip with-variable ; inline
 
-HOOK: [picker] single-combination ( -- quot )
+HOOK: [picker] single-dispatch ( -- quot )
 
 
 <PRIVATE
@@ -598,7 +591,7 @@ HOOK: [picker] single-combination ( -- quot )
 PRIVATE>
 
 : method-classes ( generic -- classes )
-    "methods" word-prop keys ;
+    "dispatch-type" word-prop methods>> keys ;
 
 : nearest-class ( class generic -- class/f )
     method-classes interesting-classes smallest-class ;
@@ -606,7 +599,7 @@ PRIVATE>
 ERROR: method-lookup-failed class generic ;
 
 : ?lookup-method ( class generic -- method/f )
-    "methods" word-prop at ;
+    "dispatch-type" word-prop methods>> at ;
 
 : lookup-method' ( class generic -- method )
     2dup ?lookup-method [ 2nip ] [ method-lookup-failed ] if* ;
@@ -618,10 +611,10 @@ ERROR: method-lookup-failed class generic ;
     ] [ "default-method" word-prop ]
     bi or ;
 
-M: single-combination make-single-default-method
+M: single-dispatch make-single-default-method
     [
         [ [picker] ] dip '[ @ _ no-single-method ]
-    ] with-single-combination ;
+    ] with-single-dispatch ;
 
 ! ! ! Build an engine ! ! !
 
@@ -820,24 +813,24 @@ M: f compile-engine ;
     [ "engines" word-prop forget-all ]
     [ V{ } clone "engines" set-word-prop ]
     [
-        "methods" word-prop clone
+        "dispatch-type" word-prop methods>> clone
         [ find-default default set ]
         [ <engine> compile-engine ] bi
     ] tri ;
 
-HOOK: inline-cache-quots single-combination
+HOOK: inline-cache-quots single-dispatch
         ( word methods -- pic-quot/f pic-tail-quot/f )
 
-M: single-combination inline-cache-quots 2drop f f ;
+M: single-dispatch inline-cache-quots 2drop f f ;
 
 : define-inline-cache-quot ( word methods -- )
     [ drop ] [ inline-cache-quots ] 2bi
     [ >>pic-def ] [ >>pic-tail-def ] bi*
     drop ;
 
-HOOK: mega-cache-quot single-combination ( methods -- quot/f )
+HOOK: mega-cache-quot single-dispatch ( methods -- quot/f )
 
-M: single-combination perform-combination
+M: single-dispatch perform-dispatch
     [
         H{ } clone predicate-engines set
         dup generic-word set
@@ -846,11 +839,11 @@ M: single-combination perform-combination
         [ mega-cache-quot define ]
         [ define-inline-cache-quot ]
         2tri
-    ] with-single-combination ;
+    ] with-single-dispatch ;
 
 M: multi-single-generic effective-method
     [ get-datastack ] dip
-    [ "combination-type" word-prop #>> swap <reversed> nth ] keep
+    [ "dispatch-type" word-prop #>> swap <reversed> nth ] keep
     method-for-object ;
 
 
@@ -873,24 +866,24 @@ M: multi-method parent-word
     [ method-word-name f <word> ] [ single-method-word-props ] 2bi
     >>props ;
 
-:: <single-default-method> ( generic combination -- method )
-    generic combination
+:: <single-default-method> ( generic dispatch -- method )
+    generic dispatch
     [ drop object bootstrap-word swap <single-method> ] [ make-single-default-method ] 2bi
     [ define ] [ drop t "default" set-word-prop ] [ drop ] 2tri
     dup generic "declared-effect" word-prop "declared-effect" set-word-prop ;
 
-: define-single-default-method ( generic combination -- )
+: define-single-default-method ( generic dispatch -- )
     dupd <single-default-method> "default-method" set-word-prop ;
 
-: define-single-generic ( word combination effect -- )
-    [ [ check-combination-effect ] keep set-stack-effect ]
+: define-single-generic ( word dispatch effect -- )
+    [ [ check-dispatch-effect ] keep set-stack-effect ]
     [
         drop
-        2dup [ "combination-type" word-prop ] dip = [ 2drop ] [
+        2dup [ "dispatch-type" word-prop ] dip = [ 2drop ] [
             {
                 [ drop reset-generic ]
-                [ "combination-type" set-word-prop ]
-                [ drop H{ } clone "methods" set-word-prop ]
+                [ "dispatch-type" set-word-prop ]
+                [ drop H{ } clone swap "dispatch-type" word-prop methods<< ]
                 [ define-single-default-method ]
             }
             2cleave
@@ -901,35 +894,35 @@ M: multi-method parent-word
 
 ! ! ! ! standard ! ! ! !
 
-M: single-standard-combination check-combination-effect
+M: single-standard-dispatch check-dispatch-effect
     [ single-dispatch# ] [ in>> length ] bi* over >
     [ drop ] [ bad-dispatch-position ] if ;
 
 PREDICATE: single-standard-generic < multi-generic
-    "combination-type" word-prop single-standard-combination? ;
+    "dispatch-type" word-prop single-standard-dispatch? ;
 
 PREDICATE: single-simple-generic < single-standard-generic
-    "combination-type" word-prop #>> 0 = ;
+    "dispatch-type" word-prop #>> 0 = ;
 
-CONSTANT: single-simple-combination
-    T{ single-standard-combination f 0 }
+CONSTANT: single-simple-dispatch
+    T{ single-standard-dispatch f 0 }
 
 : define-single-simple-generic ( word effect -- )
-    [ single-simple-combination ] dip define-single-generic ;
+    [ single-simple-dispatch ] dip define-single-generic ;
 
-M: single-standard-combination [picker]
-    single-combination get #>> picker ;
+M: single-standard-dispatch [picker]
+    single-dispatch get #>> picker ;
 
-M: single-standard-combination single-dispatch# #>> ;
+M: single-standard-dispatch single-dispatch# #>> ;
 
 M: single-standard-generic effective-method
-    [ get-datastack ] dip [ "combination-type" word-prop #>> swap <reversed> nth ] keep
+    [ get-datastack ] dip [ "dispatch-type" word-prop #>> swap <reversed> nth ] keep
     method-for-object ;
 
 : inline-cache-quot ( word methods miss-word -- quot )
-    [ [ literalize , ] [ , ] [ single-combination get #>> , { } , , ] tri* ] [ ] make ;
+    [ [ literalize , ] [ , ] [ single-dispatch get #>> , { } , , ] tri* ] [ ] make ;
 
-M: single-standard-combination inline-cache-quots
+M: single-standard-dispatch inline-cache-quots
     ! Direct calls to the generic word (not tail calls or indirect calls)
     ! will jump to the inline cache entry point instead of the megamorphic
     ! dispatch entry point.
@@ -940,27 +933,27 @@ M: single-standard-combination inline-cache-quots
 : make-empty-cache ( -- array )
     mega-cache-size get f <array> ;
 
-M: single-standard-combination mega-cache-quot
-    single-combination get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence ;
+M: single-standard-dispatch mega-cache-quot
+    single-dispatch get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence ;
 
 
 ! ! ! ! hook ! ! ! !
 
 PREDICATE: single-hook-generic < multi-generic
-    "combination-type" word-prop single-hook-combination? ;
+    "dispatch-type" word-prop single-hook-dispatch? ;
 
-M: single-hook-combination [picker]
-    single-combination get var>> [ get ] curry ;
+M: single-hook-dispatch [picker]
+    single-dispatch get var>> [ get ] curry ;
 
-M: single-hook-combination single-dispatch# drop 0 ;
+M: single-hook-dispatch single-dispatch# drop 0 ;
 
-M: single-hook-combination mega-cache-quot
+M: single-hook-dispatch mega-cache-quot
     1quotation [picker] [ lookup-method (execute) ] surround ;
 
 ! M: single-hook-generic definer drop \ HOOK: f ;
 
 M: single-hook-generic effective-method
-    [ "combination-type" word-prop var>> get ] keep method-for-object ;
+    [ "dispatch-type" word-prop var>> get ] keep method-for-object ;
 
 
 ! ! ! ! math ! ! ! !
@@ -1063,10 +1056,10 @@ PRIVATE>
 PRIVATE>
 
 
-M: math-combination make-single-default-method
+M: math-dispatch make-single-default-method
     drop default-multi-math-method ;
 
-M: math-combination perform-combination
+M: math-dispatch perform-dispatch
     drop dup generic-word [
         dup [ over ] [
             dup multi-math-class? [
@@ -1080,7 +1073,7 @@ M: math-combination perform-combination
     ] with-variable ;
 
 PREDICATE: math-generic < multi-generic
-    "combination-type" word-prop math-combination? ;
+    "dispatch-type" word-prop math-dispatch? ;
 
 ! ---------------------------------------------------------------------------
 ! UNDER CONSTRUCTION
@@ -1089,22 +1082,22 @@ SYMBOL: next-multi-method-quot-cache
 
 H{ } clone next-method-quot-cache set
 
-GENERIC: next-multi-method-quot* ( classes generic combination -- quot )
+GENERIC: next-multi-method-quot* ( classes generic dispatch -- quot )
 
 ERROR: inconsistent-next-multi-method classes generic ;
 
-M:: single-combination next-multi-method-quot*
-    ( classes generic combination -- quot )
-    combination [
+M:: single-dispatch next-multi-method-quot*
+    ( classes generic dispatch -- quot )
+    dispatch [
         [ classes generic inconsistent-next-multi-method ]
         generic methods prepare-methods drop sort-methods
         [ drop classes classes< +gt+ = ] assoc-filter
         [ [ multi-predicate ] dip ] assoc-map reverse!
         alist>quot
-    ] with-single-combination ;
+    ] with-single-dispatch ;
 
-M:: multi-combination next-multi-method-quot*
-    ( classes generic combination -- quot )
+M:: multi-dispatch next-multi-method-quot*
+    ( classes generic dispatch -- quot )
     [ classes generic inconsistent-next-multi-method ]
     generic methods prepare-methods drop sort-methods
     [ drop classes swap classes< +gt+ = ] assoc-filter
@@ -1116,7 +1109,7 @@ M:: multi-combination next-multi-method-quot*
         [ "multi-method-specializer" word-prop ]
         [
             "multi-generic" word-prop
-            dup "combination-type" word-prop
+            dup "dispatch-type" word-prop
         ] bi next-multi-method-quot*
     ! ] cache 
 ;
