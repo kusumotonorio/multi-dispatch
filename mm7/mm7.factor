@@ -4,13 +4,14 @@ USING: accessors arrays assocs classes classes.algebra
 classes.algebra.private classes.maybe classes.private
 combinators combinators.private combinators.short-circuit
 compiler compiler.units debugger definitions effects
-effects.parser generalizations generic.parser hashtables io
-kernel kernel.private layouts locals.parser make math math.order
+effects.parser generalizations hashtables io kernel
+kernel.private layouts locals.parser make math math.order
 math.private multiline namespaces parser prettyprint
 prettyprint.backend prettyprint.custom prettyprint.sections
 quotations see sequences sequences.generalizations sets shuffle
 sorting splitting summary vectors words words.symbol ;
 FROM: namespaces => set ;
+FROM: generic.parser => current-method with-method-definition ;
 FROM: generic.single.private => inline-cache-miss
 inline-cache-miss-tail lookup-method mega-cache-lookup
 mega-cache-miss ;
@@ -1015,12 +1016,9 @@ M: multi-single-standard-combination inline-cache-quots
 : make-empty-cache ( -- array )
     mega-cache-size get f <array> ;
 
-! M: multi-single-standard-combination mega-cache-quot
-!    single-combination get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence ;
-
 M: multi-single-standard-combination mega-cache-quot
-    single-combination get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence
-    [ call( -- ) ] curry ;
+    single-combination get #>> make-empty-cache \ mega-cache-lookup [ ] 4sequence ;
+
 
 ! ! ! ! hook ! ! ! !
 
@@ -1189,14 +1187,11 @@ M:: multi-single-combination next-multi-method-quot*
 !         alist>quot ;
  
 : next-multi-method-quot ( method -- quot )
-    ! next-multi-method-quot-cache get [
         [ "multi-method-specializer" word-prop ]
         [
             "multi-method-generic" word-prop
             dup "single-combination" word-prop
-        ] bi next-multi-method-quot*
-    ! ] cache 
-;
+        ] bi next-multi-method-quot* ;
 
 ERROR: no-next-multi-method method ;
 
@@ -1209,7 +1204,13 @@ M: not-in-a-multi-method-error summary
 : (call-next-multi-method) ( method -- )
     dup next-multi-method-quot [ call ] [ no-next-multi-method ] ?if ;
 
-\ (call-next-multi-method) t "no-compile" set-word-prop
+USE: stack-checker.transforms
+
+\ (call-next-multi-method) [
+    [ next-multi-method-quot ] [ '[ _ no-next-multi-method ] ] bi or
+] 1 define-transform
+
+ \ (call-next-multi-method) t "no-compile" set-word-prop
 
 SYNTAX: call-next-multi-method
    current-method get
