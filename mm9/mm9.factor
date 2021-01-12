@@ -4,12 +4,13 @@ USING: accessors arrays assocs classes classes.algebra
 classes.algebra.private classes.maybe classes.private
 combinators combinators.private combinators.short-circuit
 compiler compiler.units debugger definitions effects
-effects.parser generalizations hashtables io kernel
+effects.parser fry generalizations hashtables io kernel
 kernel.private layouts locals locals.parser make math math.order
 math.private multiline namespaces parser prettyprint
 prettyprint.backend prettyprint.custom prettyprint.sections
 quotations see sequences sequences.generalizations sets shuffle
-sorting splitting summary vectors vocabs words words.symbol ;
+sorting splitting stack-checker.transforms summary vectors
+words words.symbol ;
 FROM: namespaces => set ;
 FROM: generic.parser => current-method with-method-definition ;
 QUALIFIED-WITH: generic.single.private gsp
@@ -890,191 +891,191 @@ M: multi-method parent-word
 
 
 
-! ! ! ! standard ! ! ! !
+! ! ! standard ! ! ! !
 
-! M: single-standard-dispatch check-dispatch-effect
-!     [ single-dispatch# ] [ in>> length ] bi* over >
-!     [ drop ] [ bad-dispatch-position ] if ;
+M: single-standard-dispatch check-dispatch-effect
+    [ single-dispatch# ] [ in>> length ] bi* over >
+    [ drop ] [ bad-dispatch-position ] if ;
 
-! PREDICATE: single-standard-generic < multi-generic
-!     "dispatch-type" word-prop single-standard-dispatch? ;
+PREDICATE: single-standard-generic < multi-generic
+    "dispatch-type" word-prop single-standard-dispatch? ;
 
-! PREDICATE: single-simple-generic < single-standard-generic
-!     "dispatch-type" word-prop #>> 0 = ;
+PREDICATE: single-simple-generic < single-standard-generic
+    "dispatch-type" word-prop #>> 0 = ;
 
-! CONSTANT: single-simple-dispatch
-!     T{ single-standard-dispatch f 0 }
+CONSTANT: single-simple-dispatch
+    T{ single-standard-dispatch f 0 }
 
-! : define-single-simple-generic ( word effect -- )
-!     [ single-simple-dispatch ] dip define-single-generic ;
+: define-single-simple-generic ( word effect -- )
+    [ single-simple-dispatch ] dip define-single-generic ;
 
-! M: single-standard-dispatch [picker]
-!     dispatch-type get #>> picker ;
+M: single-standard-dispatch [picker]
+    dispatch-type get #>> picker ;
 
-! M: single-standard-dispatch single-dispatch# #>> ;
+M: single-standard-dispatch single-dispatch# #>> ;
 
-! M: single-standard-generic effective-method
-!     [ get-datastack ] dip [ "dispatch-type" word-prop #>> swap <reversed> nth ] keep
-!     method-for-object ;
+M: single-standard-generic effective-method
+    [ get-datastack ] dip [ "dispatch-type" word-prop #>> swap <reversed> nth ] keep
+    method-for-object ;
 
-! : inline-cache-quot ( word methods miss-word -- quot )
-!     [ [ literalize , ] [ , ] [ dispatch-type get #>> , { } , , ] tri* ] [ ] make ;
+: inline-cache-quot ( word methods miss-word -- quot )
+    [ [ literalize , ] [ , ] [ dispatch-type get #>> , { } , , ] tri* ] [ ] make ;
 
-! M: single-standard-dispatch inline-cache-quots
-!     ! Direct calls to the generic word (not tail calls or indirect calls)
-!     ! will jump to the inline cache entry point instead of the megamorphic
-!     ! dispatch entry point.
-!     [ \ gsp:inline-cache-miss inline-cache-quot ]
-!     [ \ gsp:inline-cache-miss-tail inline-cache-quot ]
-!     2bi ;
+M: single-standard-dispatch inline-cache-quots
+    ! Direct calls to the generic word (not tail calls or indirect calls)
+    ! will jump to the inline cache entry point instead of the megamorphic
+    ! dispatch entry point.
+    [ \ gsp:inline-cache-miss inline-cache-quot ]
+    [ \ gsp:inline-cache-miss-tail inline-cache-quot ]
+    2bi ;
 
-! : make-empty-cache ( -- array )
-!     mega-cache-size get f <array> ;
+: make-empty-cache ( -- array )
+    mega-cache-size get f <array> ;
 
-! M: single-standard-dispatch mega-cache-quot
-!     dispatch-type get #>> make-empty-cache \ gsp:mega-cache-lookup [ ] 4sequence ;
-
-
-! ! ! ! hook ! ! ! !
-
-! PREDICATE: single-hook-generic < multi-generic
-!     "dispatch-type" word-prop single-hook-dispatch? ;
-
-! M: single-hook-dispatch [picker]
-!     dispatch-type get var>> [ get ] curry ;
-
-! M: single-hook-dispatch single-dispatch# drop 0 ;
-
-! M: single-hook-dispatch mega-cache-quot
-!     1quotation [picker] [ gsp:lookup-method (execute) ] surround ;
-
-! ! M: single-hook-generic definer drop \ HOOK: f ;
-
-! M: single-hook-generic effective-method
-!     [ "dispatch-type" word-prop var>> get ] keep method-for-object ;
+M: single-standard-dispatch mega-cache-quot
+    dispatch-type get #>> make-empty-cache \ gsp:mega-cache-lookup [ ] 4sequence ;
 
 
-! ! ! ! math ! ! ! !
+! ! ! hook ! ! ! !
 
-! PREDICATE: multi-math-class < class
-!     dup null bootstrap-word eq? [
-!         drop f
-!     ] [
-!         number bootstrap-word class<=
-!     ] if ;
+PREDICATE: single-hook-generic < multi-generic
+    "dispatch-type" word-prop single-hook-dispatch? ;
 
-! <PRIVATE
+M: single-hook-dispatch [picker]
+    dispatch-type get var>> [ get ] curry ;
 
-! : bootstrap-words ( classes -- classes' )
-!     [ bootstrap-word ] map ;
+M: single-hook-dispatch single-dispatch# drop 0 ;
 
-! : math-precedence ( class -- pair )
-!     [
-!         { fixnum integer rational real number object } bootstrap-words
-!         swap [ swap class<= ] curry find drop -1 or
-!     ] [
-!         { fixnum bignum ratio float complex object } bootstrap-words
-!         swap [ class<= ] curry find drop -1 or
-!     ] bi 2array ;
+M: single-hook-dispatch mega-cache-quot
+    1quotation [picker] [ gsp:lookup-method (execute) ] surround ;
 
-! : (math-upgrade) ( max class -- quot )
-!     dupd = [ drop [ ] ] [ "coercer" word-prop [ ] or ] if ;
+! M: single-hook-generic definer drop \ HOOK: f ;
 
-! PRIVATE>
-
-! : math-class-max ( class1 class2 -- class )
-!     [ [ math-precedence ] bi@ after? ] most ;
-
-! : math-upgrade ( class1 class2 -- quot )
-!     [ math-class-max ] 2keep [ (math-upgrade) ] bi-curry@ bi
-!     [ dup empty? [ [ dip ] curry ] unless ] dip [ ] append-as ;
-
-! ERROR: no-multi-math-method left right generic ;
-
-! : default-multi-math-method ( generic -- quot )
-!     [ no-multi-math-method ] curry [ ] like ;
-
-! <PRIVATE
-
-! : (math-method) ( generic class -- quot )
-!     over ?lookup-method
-!     [ 1quotation ]
-!     [ default-multi-math-method ] ?if ;
-
-! PRIVATE>
-
-! : object-method ( generic -- quot )
-!     object bootstrap-word (math-method) ;
-
-! : multi-math-method ( word class1 class2 -- quot )
-!     2dup and [
-!         [ 2array [ declare ] curry nip ]
-!         [ math-upgrade nip ]
-!         [ math-class-max over nearest-class (math-method) ]
-!         3tri 3append
-!     ] [
-!         2drop object-method
-!     ] if ;
-
-! <PRIVATE
-
-! : make-math-method-table ( classes quot: ( ... class -- ... quot ) -- alist )
-!     [ bootstrap-words ] dip [ keep swap ] curry { } map>assoc ; inline
-
-! : math-alist>quot ( alist -- quot )
-!     [ generic-word get object-method ] dip alist>quot ;
-
-! : tag-dispatch-entry ( tag picker -- quot )
-!     [ "type" word-prop 1quotation [ tag ] [ eq? ] surround ] dip prepend ;
-
-! : tag-dispatch ( picker alist -- alist' )
-!     swap [ [ tag-dispatch-entry ] curry dip ] curry assoc-map math-alist>quot ;
-
-! : tuple-dispatch-entry ( class picker -- quot )
-!     [ 1quotation [ { tuple } declare class-of ] [ eq? ] surround ] dip prepend ;
-
-! : tuple-dispatch ( picker alist -- alist' )
-!     swap [ [ tuple-dispatch-entry ] curry dip ] curry assoc-map math-alist>quot ;
-
-! : math-dispatch-step ( picker quot: ( ... class -- ... quot ) -- quot )
-!     [ { bignum float fixnum } swap make-math-method-table ]
-!     [ { ratio complex } swap make-math-method-table tuple-dispatch ] 2bi
-!     tuple swap 2array prefix tag-dispatch ; inline
-
-! : fixnum-optimization ( word quot -- word quot' )
-!     [ dup fixnum bootstrap-word dup multi-math-method ]
-!     [
-!         ! remove redundant fixnum check since we know
-!         ! both can't be fixnums in this branch
-!         dup length 3 - cut unclip
-!         [ length 2 - ] [ nth ] bi prefix append
-!     ] bi*
-!     [ if ] 2curry [ 2dup both-fixnums? ] prepend ;
-
-! PRIVATE>
+M: single-hook-generic effective-method
+    [ "dispatch-type" word-prop var>> get ] keep method-for-object ;
 
 
-! M: math-dispatch make-single-default-method
-!     drop default-multi-math-method ;
+! ! ! math ! ! ! !
 
-! M: math-dispatch perform-dispatch
-!     drop dup generic-word [
-!         dup [ over ] [
-!             dup multi-math-class? [
-!                 [ dup ] [ multi-math-method ] 2with math-dispatch-step
-!             ] [
-!                 drop object-method
-!             ] if
-!         ] with math-dispatch-step
-!         fixnum-optimization
-!         define
-!     ] with-variable ;
+PREDICATE: multi-math-class < class
+    dup null bootstrap-word eq? [
+        drop f
+    ] [
+        number bootstrap-word class<=
+    ] if ;
 
-! PREDICATE: math-generic < multi-generic
-!     "dispatch-type" word-prop math-dispatch? ;
+<PRIVATE
 
-! ---------------------------------------------------------------------------
-! UNDER CONSTRUCTION
+: bootstrap-words ( classes -- classes' )
+    [ bootstrap-word ] map ;
+
+: math-precedence ( class -- pair )
+    [
+        { fixnum integer rational real number object } bootstrap-words
+        swap [ swap class<= ] curry find drop -1 or
+    ] [
+        { fixnum bignum ratio float complex object } bootstrap-words
+        swap [ class<= ] curry find drop -1 or
+    ] bi 2array ;
+
+: (math-upgrade) ( max class -- quot )
+    dupd = [ drop [ ] ] [ "coercer" word-prop [ ] or ] if ;
+
+PRIVATE>
+
+: math-class-max ( class1 class2 -- class )
+    [ [ math-precedence ] bi@ after? ] most ;
+
+: math-upgrade ( class1 class2 -- quot )
+    [ math-class-max ] 2keep [ (math-upgrade) ] bi-curry@ bi
+    [ dup empty? [ [ dip ] curry ] unless ] dip [ ] append-as ;
+
+ERROR: no-multi-math-method left right generic ;
+
+: default-multi-math-method ( generic -- quot )
+    [ no-multi-math-method ] curry [ ] like ;
+
+<PRIVATE
+
+: (math-method) ( generic class -- quot )
+    over ?lookup-method
+    [ 1quotation ]
+    [ default-multi-math-method ] ?if ;
+
+PRIVATE>
+
+: object-method ( generic -- quot )
+    object bootstrap-word (math-method) ;
+
+: multi-math-method ( word class1 class2 -- quot )
+    2dup and [
+        [ 2array [ declare ] curry nip ]
+        [ math-upgrade nip ]
+        [ math-class-max over nearest-class (math-method) ]
+        3tri 3append
+    ] [
+        2drop object-method
+    ] if ;
+
+<PRIVATE
+
+: make-math-method-table ( classes quot: ( ... class -- ... quot ) -- alist )
+    [ bootstrap-words ] dip [ keep swap ] curry { } map>assoc ; inline
+
+: math-alist>quot ( alist -- quot )
+    [ generic-word get object-method ] dip alist>quot ;
+
+: tag-dispatch-entry ( tag picker -- quot )
+    [ "type" word-prop 1quotation [ tag ] [ eq? ] surround ] dip prepend ;
+
+: tag-dispatch ( picker alist -- alist' )
+    swap [ [ tag-dispatch-entry ] curry dip ] curry assoc-map math-alist>quot ;
+
+: tuple-dispatch-entry ( class picker -- quot )
+    [ 1quotation [ { tuple } declare class-of ] [ eq? ] surround ] dip prepend ;
+
+: tuple-dispatch ( picker alist -- alist' )
+    swap [ [ tuple-dispatch-entry ] curry dip ] curry assoc-map math-alist>quot ;
+
+: math-dispatch-step ( picker quot: ( ... class -- ... quot ) -- quot )
+    [ { bignum float fixnum } swap make-math-method-table ]
+    [ { ratio complex } swap make-math-method-table tuple-dispatch ] 2bi
+    tuple swap 2array prefix tag-dispatch ; inline
+
+: fixnum-optimization ( word quot -- word quot' )
+    [ dup fixnum bootstrap-word dup multi-math-method ]
+    [
+        ! remove redundant fixnum check since we know
+        ! both can't be fixnums in this branch
+        dup length 3 - cut unclip
+        [ length 2 - ] [ nth ] bi prefix append
+    ] bi*
+    [ if ] 2curry [ 2dup both-fixnums? ] prepend ;
+
+PRIVATE>
+
+
+M: math-dispatch make-single-default-method
+    drop default-multi-math-method ;
+
+M: math-dispatch perform-dispatch
+    drop dup generic-word [
+        dup [ over ] [
+            dup multi-math-class? [
+                [ dup ] [ multi-math-method ] 2with math-dispatch-step
+            ] [
+                drop object-method
+            ] if
+        ] with math-dispatch-step
+        fixnum-optimization
+        define
+    ] with-variable ;
+
+PREDICATE: math-generic < multi-generic
+    "dispatch-type" word-prop math-dispatch? ;
+
+
+! ! ! call-next-multi-method ! ! !
 
 SYMBOL: next-multi-method-quot-cache
 
@@ -1103,14 +1104,12 @@ M:: multi-dispatch next-multi-method-quot*
     alist>quot ;
 
 : next-multi-method-quot ( method -- quot )
-    ! next-multi-method-quot-cache get [
-        [ "multi-method-specializer" word-prop ]
-        [
-            "multi-generic" word-prop
-            dup "dispatch-type" word-prop
-        ] bi next-multi-method-quot*
-    ! ] cache 
-;
+    ! TODO: use next-multi-method-quot-cache
+    [ "multi-method-specializer" word-prop ]
+    [
+        "multi-generic" word-prop
+        dup "dispatch-type" word-prop
+    ] bi next-multi-method-quot* ; inline
 
 ERROR: no-next-multi-method method ;
 
@@ -1123,15 +1122,14 @@ M: not-in-a-multi-method-error summary
 : (call-next-multi-method) ( method -- )
     dup next-multi-method-quot [ call ] [ no-next-multi-method ] ?if ;
 
- \ (call-next-multi-method) t "no-compile" set-word-prop
+\ (call-next-multi-method) [
+    [ next-multi-method-quot ] [ '[ _ no-next-multi-method ] ] bi or
+] 1 define-transform
+
+\ (call-next-multi-method) t "no-compile" set-word-prop
 
 SYNTAX: call-next-multi-method
    current-method get
    [ literalize suffix! \ (call-next-multi-method) suffix! ]
    [ not-in-a-multi-method-error ] if* ;
 
-! ----------------------------------------------------------------
-
-"mm9.standard" require
-"mm9.hook" require
-"mm9.math" require
