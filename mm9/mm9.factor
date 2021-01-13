@@ -1,5 +1,3 @@
-! Borrowing the `multi-methods`
-
 USING: accessors arrays assocs classes classes.algebra
 classes.algebra.private classes.maybe classes.private
 combinators combinators.private combinators.short-circuit
@@ -106,6 +104,7 @@ GENERIC: effective-method ( generic -- method )
         [ 1 - picker [ dip swap ] curry ]
     } case ;
 
+
 ! PART I: Converting hook specializers
 : canonicalize-specializer-0 ( specializer -- specializer' )
     [ \ f or ] map ;
@@ -159,6 +158,7 @@ SYMBOL: total
 
         hooks get
     ] with-scope ;
+
 
 ! Part II: Topologically sorting specializers
 : maximal-element ( seq quot -- n elt )
@@ -285,7 +285,7 @@ DEFER: make-generic
 DEFER: define-single-default-method
 
 :: make-generic ( generic -- )
-    generic "mathematical" word-prop [
+    generic "mathematical?" word-prop [
         ! math-dispatch
         math-dispatch new dup
         generic swap "dispatch-type" set-word-prop
@@ -430,16 +430,20 @@ M: no-method error.
     {
         [ H{ } clone "multi-methods" set-word-prop ]
         [ { } clone "hooks" set-word-prop ]
+        [ f "mathematical?" set-word-prop ] 
         [ update-generic ]
     } cleave ;
 
-! Syntax
+
+! ! ! Syntax ! ! !
 SYNTAX: MGENERIC: scan-new-word scan-effect 
     parse-variable-effect
     define-generic ;
 
 : make-mathematical ( word -- )
-    t "mathematical" set-word-prop ;
+    dup multi-generic? [
+        t "mathematical?" set-word-prop
+    ] [ drop ] if ;
 
 SYNTAX: mathematical last-word make-mathematical ;
 
@@ -451,7 +455,7 @@ M: invalid-math-method-parameter summary
 parameters of the same class." ;
 
 :: create-method-in ( effect specializer generic -- method )
-    generic "mathematical" word-prop [
+    generic "mathematical?" word-prop [
         specializer {
             [ t [ array? not and ] reduce ]
             [ length 2 = ]
@@ -543,7 +547,6 @@ M: multi-method pprint*
 
 
 ! ! ! ! single ! ! ! !
-
 ERROR: no-single-method object generic ;
 
 ! ERROR: inconsistent-next-method class generic ;
@@ -615,8 +618,8 @@ M: single-dispatch make-single-default-method
         [ [picker] ] dip '[ @ _ no-single-method ]
     ] with-dispatch-type ;
 
-! ! ! Build an engine ! ! !
 
+! ! ! Build an engine ! ! !
 : find-default ( methods -- default )
     ! Side-effects methods.
     [ object bootstrap-word ] dip delete-at* [
@@ -699,6 +702,7 @@ C: <tag-dispatch-engine> tag-dispatch-engine
     flatten-methods
     convert-tuple-methods
     <tag-dispatch-engine> ;
+
 
 ! ! ! Compile engine ! ! !
 GENERIC: compile-engine ( engine -- obj )
@@ -845,7 +849,6 @@ M: multi-single-generic effective-method
     [ "dispatch-type" word-prop #>> swap <reversed> nth ] keep
     method-for-object ;
 
-
 PREDICATE: default-method < word "default" word-prop ;
 
 : single-method-word-props ( class generic -- assoc )
@@ -892,7 +895,6 @@ M: multi-method parent-word
 
 
 ! ! ! standard ! ! ! !
-
 M: single-standard-dispatch check-dispatch-effect
     [ single-dispatch# ] [ in>> length ] bi* over >
     [ drop ] [ bad-dispatch-position ] if ;
@@ -937,7 +939,6 @@ M: single-standard-dispatch mega-cache-quot
 
 
 ! ! ! hook ! ! ! !
-
 PREDICATE: single-hook-generic < multi-generic
     "dispatch-type" word-prop single-hook-dispatch? ;
 
@@ -956,7 +957,6 @@ M: single-hook-generic effective-method
 
 
 ! ! ! math ! ! ! !
-
 PREDICATE: multi-math-class < class
     dup null bootstrap-word eq? [
         drop f
@@ -1076,10 +1076,9 @@ PREDICATE: math-generic < multi-generic
 
 
 ! ! ! call-next-multi-method ! ! !
-
 SYMBOL: next-multi-method-quot-cache
 
-H{ } clone next-method-quot-cache set
+H{ } clone next-method-quot-cache set-global
 
 GENERIC: next-multi-method-quot* ( classes generic dispatch -- quot )
 
@@ -1103,13 +1102,22 @@ M:: multi-dispatch next-multi-method-quot*
     [ [ multi-predicate ] dip ] assoc-map reverse!
     alist>quot ;
 
+ERROR: call-next-multi-method-in-a-math-generic generic ;
+
+M: call-next-multi-method-in-a-math-generic summary
+    drop
+    "call-next-multi-method can not be used in mathematical multi-methods" ;
+
+M:: math-dispatch next-multi-method-quot* ( classes generic dispatch -- quot )
+    generic call-next-multi-method-in-a-math-generic ;
+
 : next-multi-method-quot ( method -- quot )
     ! TODO: use next-multi-method-quot-cache
     [ "multi-method-specializer" word-prop ]
     [
         "multi-generic" word-prop
         dup "dispatch-type" word-prop
-    ] bi next-multi-method-quot* ; inline
+    ] bi next-multi-method-quot* ;
 
 ERROR: no-next-multi-method method ;
 
@@ -1119,12 +1127,20 @@ M: not-in-a-multi-method-error summary
     drop
     "call-next-multi-method can only be called in a multi-method definition" ;
 
+: call-next-multi-method-quot ( quot -- )
+    ! This is a word to avoid a compiler error.
+    drop ;
+
 : (call-next-multi-method) ( method -- )
-    dup next-multi-method-quot [ call ] [ no-next-multi-method ] ?if ;
+    ! The content of this definition is actually replaced and never used.
+    dup next-multi-method-quot [
+        call-next-multi-method-quot
+    ] [ no-next-multi-method ] ?if ;
 
 \ (call-next-multi-method) [
     [ next-multi-method-quot ] [ '[ _ no-next-multi-method ] ] bi or
 ] 1 define-transform
+! TODO: Register dependency information
 
 \ (call-next-multi-method) t "no-compile" set-word-prop
 
