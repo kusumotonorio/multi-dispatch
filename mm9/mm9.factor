@@ -350,7 +350,7 @@ M: multi-method parent-word
 : method-word-props ( described-effect specializer generic -- assoc )
     [
         "multi-generic" ,,
-        "multi-method-specializer" ,,
+        "method-specializer" ,,
         "described-effect" ,,
     ] H{ } make ;
 
@@ -415,14 +415,13 @@ M: no-method error.
     dup arguments>> [ class-of ] map niceify-method .
     nl
     "Available methods: " print
-    generic>> methods canonicalize-specializers drop sort-methods
-    keys [ niceify-method ] map stack. ;
+    generic>> methods values stack. ;
 
 : forget-method ( specializer generic -- )
     [ delete-at ] with-methods ;
 
 : method>spec ( method -- spec )
-    [ "multi-method-specializer" word-prop ]
+    [ "method-specializer" word-prop ]
     [ "multi-generic" word-prop ] bi prefix ;
 
 : define-generic ( word effect hooks -- )
@@ -504,27 +503,6 @@ M: multi-generic definer drop \ MGENERIC: f ;
 
 M: multi-generic definition drop f ;
 
-PREDICATE: method-spec < array
-    unclip multi-generic? [ [ class? ] all? ] dip and ;
-
-M: method-spec where
-    dup unclip method [ ] [ first ] ?if where ;
-
-M: method-spec set-where
-    unclip method set-where ;
-
-M: method-spec definer
-    unclip method definer ;
-
-M: method-spec definition
-    unclip method definition ;
-
-M: method-spec synopsis*
-    unclip method synopsis* ;
-
-M: method-spec forget*
-    unclip method forget* ;
-
 M: multi-method definer
     drop \ MM: \ ; ;
 
@@ -549,10 +527,6 @@ M: multi-method pprint*
 
 ! ! ! ! single ! ! ! !
 ERROR: no-single-method object generic ;
-
-! ERROR: inconsistent-next-method class generic ;
-
-! TUPLE: single-dispatch ;
 
 PREDICATE: multi-single-generic < multi-generic
     "dispatch-type" word-prop single-dispatch? ;
@@ -1096,7 +1070,7 @@ M:: math-dispatch next-multi-method-quot* ( classes generic dispatch -- quot )
 
 : next-multi-method-quot ( method -- quot )
     ! TODO: use next-multi-method-quot-cache
-    [ "multi-method-specializer" word-prop ]
+    [ "method-specializer" word-prop ]
     [
         "multi-generic" word-prop
         dup "dispatch-type" word-prop
