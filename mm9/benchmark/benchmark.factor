@@ -37,10 +37,10 @@ MM:: md-beats? ( :thing :thing -- ? ) f ;
 ! multi-hook-dispatch
 MGENERIC: mhd-beats? ( thing1 thing2 | -- ? )
 
-MM: mhd-beats? ( thing1: paper thing2: scissors | -- ? ) t ; 
-MM: mhd-beats? ( thing1: scissors thing2: rock | -- ? ) t ; 
-MM: mhd-beats? ( thing1: rock thing2: paper | -- ? ) t ; 
-MM: mhd-beats? ( thing1: thing thing2: thing | -- ? ) f ; 
+MM: mhd-beats? ( thing1: paper thing2: scissors | -- ? ) t ;
+MM: mhd-beats? ( thing1: scissors thing2: rock | -- ? ) t ;
+MM: mhd-beats? ( thing1: rock thing2: paper | -- ? ) t ;
+MM: mhd-beats? ( thing1: thing thing2: thing | -- ? ) f ;
 
 : mhd-play ( -- ? ) mhd-beats? ;
 
@@ -48,7 +48,7 @@ MM: mhd-beats? ( thing1: thing thing2: thing | -- ? ) f ;
 ! sigle-dispach
 GENERIC: sd-beats? ( obj1 obj2 -- ? )
 
-M: paper sd-beats? drop rock? [ t ] [ f ] if ; 
+M: paper sd-beats? drop rock? [ t ] [ f ] if ;
 M: scissors sd-beats? drop paper? [ t ] [ f ] if ;
 M: rock sd-beats? drop scissors? [ t ] [ f ] if ;
 
@@ -58,7 +58,7 @@ M: rock sd-beats? drop scissors? [ t ] [ f ] if ;
 ! multi-sigle-dispach
 MGENERIC: smd-beats? ( obj1 obj2 -- ? )
 
-MM: smd-beats? ( obj1 obj2: paper -- ? )    drop rock? [ t ] [ f ] if ; 
+MM: smd-beats? ( obj1 obj2: paper -- ? )    drop rock? [ t ] [ f ] if ;
 MM: smd-beats? ( obj1 obj2: scissors -- ? ) drop paper? [ t ] [ f ] if ;
 MM: smd-beats? ( obj1 obj2: rock -- ? )     drop scissors? [ t ] [ f ] if ;
 
@@ -68,7 +68,7 @@ MM: smd-beats? ( obj1 obj2: rock -- ? )     drop scissors? [ t ] [ f ] if ;
 ! sigle-hook-dispatch
 HOOK: shd-beats? thing2 ( -- ? )
 
-M: paper shd-beats? thing1 get rock? [ t ] [ f ] if ; 
+M: paper shd-beats? thing1 get rock? [ t ] [ f ] if ;
 M: scissors shd-beats? thing1 get paper? [ t ] [ f ] if ;
 M: rock shd-beats? thing1 get scissors? [ t ] [ f ] if ;
 
@@ -78,9 +78,9 @@ M: rock shd-beats? thing1 get scissors? [ t ] [ f ] if ;
 ! sigle-spac-hook-multi-dispatch
 MGENERIC: shmd-beats? ( thing2 | -- ? )
 
-MM: shmd-beats? ( thing2: scissors | -- ? ) thing1 get paper? [ t ] [ f ] if ; 
-MM: shmd-beats? ( thing2: rock | -- ? ) thing1 get scissors? [ t ] [ f ] if ; 
-MM: shmd-beats? ( thing2: paper | -- ? ) thing1 get rock? [ t ] [ f ] if ; 
+MM: shmd-beats? ( thing2: scissors | -- ? ) thing1 get paper? [ t ] [ f ] if ;
+MM: shmd-beats? ( thing2: rock | -- ? ) thing1 get scissors? [ t ] [ f ] if ;
+MM: shmd-beats? ( thing2: paper | -- ? ) thing1 get rock? [ t ] [ f ] if ;
 
 : shmd-play ( -- ? ) shd-beats? ;
 
@@ -190,7 +190,7 @@ MM: md-ln-beats? ( :man :the-man-No.030 -- ? ) 2drop t ;
 
 : md-ln-play ( man1 man2 -- ? ) md-ln-beats? ; inline
 
-  
+
 MGENERIC: smd-ln-beats? ( man man -- ? )
 
 MM: smd-ln-beats? ( man :the-man-No.001 -- ? ) 2drop t ;
@@ -238,11 +238,11 @@ SYMBOL: ref
         { [ dup 1,000,000 >= ] [
               [ 1,000,000 / >integer ]
               [ 1,000,000 mod 1,000 / >integer ]
-              [ 1,000 mod ] 
+              [ 1,000 mod ]
               tri "%d,%03d,%03d" sprintf ] }
         { [ dup 1,000 >= ] [
               [ 1,000 / >integer ]
-              [ 1,000 mod ] 
+              [ 1,000 mod ]
               bi "%d,%03d" sprintf ] }
         [ "%d" sprintf ]
     } cond
@@ -254,17 +254,17 @@ SYMBOL: ref
             paper paper       play drop
             paper scissors    play drop
             paper rock        play drop
-            
+
             scissors paper    play drop
             scissors scissors play drop
             scissors rock     play drop
-            
+
             rock paper        play drop
             rock scissors     play drop
             rock rock         play drop
         ] times
     ] benchmark dup no-dispatch-time set
-    1.0e9 / 
+    1.0e9 /
     "no-dispatch:                %.6f seconds (reference)\n" printf
 
     gc
@@ -273,11 +273,11 @@ SYMBOL: ref
             paper paper       sd-play drop
             paper scissors    sd-play drop
             paper rock        sd-play drop
-            
+
             scissors paper    sd-play drop
             scissors scissors sd-play drop
             scissors rock     sd-play drop
-            
+
             rock paper        sd-play drop
             rock scissors     sd-play drop
             rock rock         sd-play drop
@@ -292,11 +292,11 @@ SYMBOL: ref
             paper paper       md-play drop
             paper scissors    md-play drop
             paper rock        md-play drop
-            
+
             scissors paper    md-play drop
             scissors scissors md-play drop
             scissors rock     md-play drop
-            
+
             rock paper        md-play drop
             rock scissors     md-play drop
             rock rock         md-play drop
@@ -311,11 +311,11 @@ SYMBOL: ref
             paper paper       smd-play drop
             paper scissors    smd-play drop
             paper rock        smd-play drop
-            
+
             scissors paper    smd-play drop
             scissors scissors smd-play drop
             scissors rock     smd-play drop
-            
+
             rock paper        smd-play drop
             rock scissors     smd-play drop
             rock rock         smd-play drop
@@ -327,15 +327,15 @@ SYMBOL: ref
     gc
     [
         TIMES [
-            paper    thing1 set 
+            paper    thing1 set
             paper    thing2 set shd-play drop
             scissors thing2 set shd-play drop
             rock     thing2 set shd-play drop
-            
+
             scissors thing1 set paper thing2 set shd-play drop scissors
             thing2 set shd-play drop rock thing2 set shd-play drop
-            
-            rock     thing1 set 
+
+            rock     thing1 set
             paper    thing2 set shd-play drop
             scissors thing2 set shd-play drop
             rock     thing2 set shd-play drop
@@ -347,17 +347,17 @@ SYMBOL: ref
     gc
     [
         TIMES [
-            paper    thing1 set 
+            paper    thing1 set
             paper    thing2 set mhd-play drop
             scissors thing2 set mhd-play drop
             rock     thing2 set mhd-play drop
-            
-            scissors thing1 set 
+
+            scissors thing1 set
             paper    thing2 set mhd-play drop
             scissors thing2 set mhd-play drop
             rock     thing2 set mhd-play drop
-            
-            rock     thing1 set 
+
+            rock     thing1 set
             paper    thing2 set mhd-play drop
             scissors thing2 set mhd-play drop
             rock     thing2 set mhd-play drop
@@ -369,15 +369,15 @@ SYMBOL: ref
     gc
     [
         TIMES [
-            paper    thing1 set 
+            paper    thing1 set
             paper    thing2 set shmd-play drop
             scissors thing2 set shmd-play drop
             rock     thing2 set shmd-play drop
-            
+
             scissors thing1 set paper thing2 set shd-play drop scissors
             thing2 set shd-play drop rock thing2 set shd-play drop
-            
-            rock     thing1 set 
+
+            rock     thing1 set
             paper    thing2 set shmd-play drop
             scissors thing2 set shmd-play drop
             rock     thing2 set shmd-play drop
@@ -391,16 +391,16 @@ SYMBOL: ref
         { [ dup 1,000,000 >= ] [
               [ 1,000,000 / >integer ]
               [ 1,000,000 mod 1,000 / >integer ]
-              [ 1,000 mod ] 
+              [ 1,000 mod ]
               tri "%d,%03d,%03d" sprintf ] }
         { [ dup 1,000 >= ] [
               [ 1,000 / >integer ]
-              [ 1,000 mod ] 
+              [ 1,000 mod ]
               bi "%d,%03d" sprintf ] }
         [ "%d" sprintf ]
     } cond
     " repetitions of the showdown of the all combinations of No.001 to No.005\n"
-    3append write 
+    3append write
 
     gc
     [
@@ -466,7 +466,7 @@ SYMBOL: ref
         ] times
     ] benchmark
     [ 1.0e9 / ] [ ref get / ] bi
-    "multi-dispatch:             %.6f　seconds (%.2f times slower)\n" printf
+    "multi-dispatch:             %.6f seconds (%.2f times slower)\n" printf
 
     gc
     [

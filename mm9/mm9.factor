@@ -4,11 +4,10 @@ combinators combinators.private combinators.short-circuit
 compiler compiler.units debugger definitions effects
 effects.parser fry generalizations hashtables io kernel
 kernel.private layouts locals locals.parser make math math.order
-math.private multiline namespaces parser prettyprint
-prettyprint.backend prettyprint.custom prettyprint.sections
-quotations see sequences sequences.generalizations sets shuffle
-sorting splitting stack-checker.transforms summary vectors
-words words.symbol ;
+math.private namespaces parser prettyprint prettyprint.backend
+prettyprint.custom prettyprint.sections quotations see sequences
+sequences.generalizations sets shuffle sorting splitting
+stack-checker.transforms summary vectors words words.symbol ;
 FROM: namespaces => set ;
 FROM: generic.parser => current-method with-method-definition ;
 QUALIFIED-WITH: generic.single.private gsp
@@ -26,9 +25,11 @@ M: multi-method no-compile?
 M: multi-method combinator?
     "multi-generic" word-prop combinator? ;
 
-TUPLE: multi-dispatch ;
+TUPLE: dispatch ;
 
-TUPLE: non-multi-dispatch methods ;
+TUPLE: multi-dispatch < dispatch ;
+
+TUPLE: non-multi-dispatch < dispatch methods ;
 
 TUPLE: single-dispatch < non-multi-dispatch ;
 
@@ -72,16 +73,16 @@ GENERIC: effective-method ( generic -- method )
     hooks [ in ] [ { "|" } in 3append ] if-empty out <effect> ;
 
 : parse-variable-effect ( effect -- effect' hooks )
-    [ 
-        in>> { "|" } split1 [ 
+    [
+        in>> { "|" } split1 [
             [
                 [
-                    dup array? [ 
+                    dup array? [
                         first2 [ parse-word ] dip 2array
                     ] [ parse-word ] if
                 ] map
             ] dip
-        ] [ { } clone swap ] if* ] 
+        ] [ { } clone swap ] if* ]
     [ out>> ]
     bi <effect> swap ;
 
@@ -225,7 +226,7 @@ SYMBOL: total
                 ] if
             ] [
                 ! stack-specializer
-                dup object = [ 2drop ] [ 
+                dup object = [ 2drop ] [
                     drop
                     dup stack-specializers in? [ drop ] [
                         stack-specializers push
@@ -234,8 +235,7 @@ SYMBOL: total
             ] if
         ] 2each
     ] each
-    stack-specializers >array
-    hook-specializers >array ;
+    stack-specializers hook-specializers [ >array ] bi@ ;
 
 ERROR: no-method arguments generic ;
 
@@ -285,12 +285,12 @@ DEFER: make-generic
 DEFER: define-single-default-method
 
 :: make-generic ( generic -- )
-    generic "mathematical?" word-prop [
+    generic "mathematical" word-prop [
         ! math-dispatch
         math-dispatch new dup
         generic swap "dispatch-type" set-word-prop
         generic "multi-methods" word-prop [
-            [ dup length 1 - swap nth ] dip 
+            [ dup length 1 - swap nth ] dip
         ] assoc-map generic "dispatch-type" word-prop methods<<
         generic make-single-generic
         generic swap define-single-default-method
@@ -301,7 +301,7 @@ DEFER: define-single-default-method
                 <single-hook-dispatch>
                 generic swap "dispatch-type" set-word-prop
                 generic "multi-methods" word-prop [
-                    [ dup length 1 - swap nth second ] dip 
+                    [ dup length 1 - swap nth second ] dip
                 ] assoc-map
                 generic "dispatch-type" word-prop methods<<
             ] [
@@ -311,7 +311,7 @@ DEFER: define-single-default-method
                     generic swap "dispatch-type" set-word-prop ]
                 [| # |
                     generic "multi-methods" word-prop [
-                        [ dup length 1 - # - swap nth ] dip 
+                        [ dup length 1 - # - swap nth ] dip
                  ] assoc-map
                  generic "dispatch-type" word-prop methods<< ]
                 bi
@@ -341,19 +341,21 @@ M: multi-method stack-effect
 M: multi-method crossref?
     "forgotten" word-prop not ;
 
+M: multi-method parent-word
+    "multi-generic" word-prop ;
+
 : method-word-name ( specializer generic -- string )
     [ name>> % " " % unparse % ] "" make ;
 
-: method-word-props ( effect specializer generic -- assoc )
+: method-word-props ( described-effect specializer generic -- assoc )
     [
         "multi-generic" ,,
         "multi-method-specializer" ,,
-        "declared-effect" ,,
+        "described-effect" ,,
     ] H{ } make ;
 
-: <method> ( effect specializer generic -- word )
-    [ method-word-props ] 3keep nip ! 2keep
-    [  ] dip
+: <method> ( described-effect specializer generic -- word )
+    [ method-word-props ] 3keep nip
     method-word-name f <word>
     swap >>props ;
 
@@ -392,13 +394,12 @@ M: anonymous-intersection implementor-classes participants>> ;
     "multi-methods" word-prop at ;
 
 :: create-method ( effect classes generic -- method )
-    effect classes generic
+    classes generic
     2dup method dup [
         2nip
     ] [
         drop [ effect -rot <method> dup ] 2keep reveal-method
-    ] if
-    dup rot drop effect set-stack-effect ;
+    ] if ;
 
 : niceify-method ( seq -- seq )
     [ dup \ f eq? [ drop f ] when ] map ;
@@ -429,20 +430,19 @@ M: no-method error.
     over swap "hooks" set-word-prop
     {
         [ H{ } clone "multi-methods" set-word-prop ]
-        [ { } clone "hooks" set-word-prop ]
-        [ f "mathematical?" set-word-prop ] 
+        [ f "mathematical" set-word-prop ]
         [ update-generic ]
     } cleave ;
 
 
 ! ! ! Syntax ! ! !
-SYNTAX: MGENERIC: scan-new-word scan-effect 
+SYNTAX: MGENERIC: scan-new-word scan-effect
     parse-variable-effect
     define-generic ;
 
 : make-mathematical ( word -- )
     dup multi-generic? [
-        t "mathematical?" set-word-prop
+        t "mathematical" set-word-prop
     ] [ drop ] if ;
 
 SYNTAX: mathematical last-word make-mathematical ;
@@ -455,14 +455,14 @@ M: invalid-math-method-parameter summary
 parameters of the same class." ;
 
 :: create-method-in ( effect specializer generic -- method )
-    generic "mathematical?" word-prop [
+    generic "mathematical" word-prop [
         specializer {
             [ t [ array? not and ] reduce ]
             [ length 2 = ]
-            [ first2 = ] 
+            [ first2 = ]
         } 1&& [
             invalid-math-method-parameter
-        ] unless 
+        ] unless
     ] when
     effect specializer generic create-method dup save-location f set-last-word ;
 
@@ -478,7 +478,8 @@ parameters of the same class." ;
     ] with-definition ;
 
 : extract-locals ( method -- effect vars assoc )
-    "declared-effect" word-prop dup in>> [ dup pair? [ first ] when ] map
+    "described-effect" word-prop
+    dup in>> [ dup pair? [ first ] when ] map
     make-locals ;
 
 : extract-locals-definition ( word reader-quot -- word quot effect )
@@ -530,7 +531,7 @@ M: multi-method definer
 M: multi-method synopsis*
     dup definer.
     [ "multi-generic" word-prop pprint-word ]
-    [ "declared-effect" word-prop pprint* ]
+    [ "described-effect" word-prop pprint* ]
     bi ;
 
 SYNTAX: MM\
@@ -541,7 +542,7 @@ M: multi-method pprint*
     <block
     \ MM\ pprint-word
     [ "multi-generic" word-prop pprint-word ]
-    [ "declared-effect" word-prop pprint* ]
+    [ "described-effect" word-prop pprint* ]
     bi
     block> ;
 
@@ -698,7 +699,7 @@ TUPLE: tag-dispatch-engine methods ;
 
 C: <tag-dispatch-engine> tag-dispatch-engine
 
-: <engine> ( assoc -- engine ) 
+: <engine> ( assoc -- engine )
     flatten-methods
     convert-tuple-methods
     <tag-dispatch-engine> ;
@@ -851,28 +852,21 @@ M: multi-single-generic effective-method
 
 PREDICATE: default-method < word "default" word-prop ;
 
-: single-method-word-props ( class generic -- assoc )
-    [
-        "method-generic" ,,
-        "method-class" ,,
-    ] H{ } make ;
+:: single-default-method-word-props ( generic -- assoc )
+    generic "declared-effect" word-prop :> effect
+    effect in>> [ dup array? [ first ] when object 2array ] map
+    generic "hooks" word-prop dup empty? [ drop ] [
+        [ object 2array ] map { "|" } clone append swap append
+    ] if
+    effect out>>
+    <effect> f generic method-word-props ; ! dummy spacializer
 
-: single-method-word-name ( class generic -- string )
-    [ class-name ] [ name>> ] bi* "=>" glue ;
-
-M: multi-method parent-word
-    "multi-generic" word-prop ;
-
-: <single-method> ( class generic -- method )
-    check-single-method
-    [ method-word-name f <word> ] [ single-method-word-props ] 2bi
-    >>props ;
-
-:: <single-default-method> ( generic dispatch -- method )
-    generic dispatch
-    [ drop object bootstrap-word swap <single-method> ] [ make-single-default-method ] 2bi
-    [ define ] [ drop t "default" set-word-prop ] [ drop ] 2tri
-    dup generic "declared-effect" word-prop "declared-effect" set-word-prop ;
+:: <single-default-method> ( generic dispatch-type -- method )
+    f f <word> dup generic single-default-method-word-props >>props
+    dup "described-effect" word-prop generic method-word-name
+    swap name<<
+    generic dispatch-type make-single-default-method
+    [ define ] [ drop t "default" set-word-prop ] [ drop ] 2tri ;
 
 : define-single-default-method ( generic dispatch -- )
     dupd <single-default-method> "default-method" set-word-prop ;
@@ -891,7 +885,6 @@ M: multi-method parent-word
             2cleave
         ] if ]
     [ 2drop remake-single-generic ] 3tri ;
-
 
 
 ! ! ! standard ! ! ! !
@@ -949,8 +942,6 @@ M: single-hook-dispatch single-dispatch# drop 0 ;
 
 M: single-hook-dispatch mega-cache-quot
     1quotation [picker] [ gsp:lookup-method (execute) ] surround ;
-
-! M: single-hook-generic definer drop \ HOOK: f ;
 
 M: single-hook-generic effective-method
     [ "dispatch-type" word-prop var>> get ] keep method-for-object ;
@@ -1084,7 +1075,7 @@ GENERIC: next-multi-method-quot* ( classes generic dispatch -- quot )
 
 ERROR: inconsistent-next-multi-method classes generic ;
 
-M:: single-dispatch next-multi-method-quot*
+M:: dispatch next-multi-method-quot*
     ( classes generic dispatch -- quot )
     dispatch [
         [ classes generic inconsistent-next-multi-method ]
@@ -1093,14 +1084,6 @@ M:: single-dispatch next-multi-method-quot*
         [ [ multi-predicate ] dip ] assoc-map reverse!
         alist>quot
     ] with-dispatch-type ;
-
-M:: multi-dispatch next-multi-method-quot*
-    ( classes generic dispatch -- quot )
-    [ classes generic inconsistent-next-multi-method ]
-    generic methods prepare-methods drop sort-methods
-    [ drop classes swap classes< +gt+ = ] assoc-filter
-    [ [ multi-predicate ] dip ] assoc-map reverse!
-    alist>quot ;
 
 ERROR: call-next-multi-method-in-a-math-generic generic ;
 
