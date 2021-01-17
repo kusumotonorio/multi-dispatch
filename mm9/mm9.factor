@@ -363,7 +363,9 @@ M: multi-method parent-word
 : with-methods ( word quot -- )
     over [
         [ "multi-methods" word-prop ] dip call
-    ] dip update-generic ; inline
+    ] dip
+    update-generic
+ ; inline
 
 GENERIC: implementor-classes ( obj -- class )
 
@@ -504,8 +506,23 @@ M: multi-generic definer drop \ MGENERIC: f ;
 
 M: multi-generic definition drop f ;
 
+M: multi-generic forget*
+    [ methods values [ forget ] each ] [ call-next-method ] bi ;
+
 M: multi-method definer
     drop \ MM: \ ; ;
+
+! M: multi-method forget*
+!     ! [
+!     !     "method-specializer" "multi-generic"
+!     !     [ word-prop ] bi-curry@ bi forget-method ]
+
+!     [
+!         [ "method-specializer" word-prop ]
+!         [  "multi-generic" word-prop ]
+!         bi forget-method ]
+!     [ call-next-method ]
+!     bi ;
 
 M: multi-method synopsis*
     dup definer.
@@ -1104,7 +1121,7 @@ M: not-in-a-multi-method-error summary
 
 TUPLE: depends-on-next-multi-method classes generic next-multi-method ;
 
-: add-depends-on-next-multi-method ( classes generic next-method -- )
+: add-depends-on-next-multi-method ( classes generic next-multi-method -- )
     over +conditional+ depends-on
     depends-on-next-multi-method add-conditional-dependency ;
 
@@ -1113,7 +1130,8 @@ M: depends-on-next-multi-method satisfied?
         [ classes>> [ classoid? ] all? ]
         [
             [ [ classes>> ] [ generic>> ] bi next-multi-method ]
-            [ next-multi-method>> ] bi eq? ]
+            [ next-multi-method>> ] bi eq?
+        ]
     } 1&& ;
 
 : add-next-multi-method-dependency ( method -- )
@@ -1126,8 +1144,8 @@ M: depends-on-next-multi-method satisfied?
     [ add-next-multi-method-dependency ]
     [
         [ next-multi-method-quot ]
-        [ '[ _ no-next-multi-method ] ] bi or ]
-    bi
+        [ '[ _ no-next-multi-method ] ] bi or
+    ] bi
 ] 1 define-transform
 
 \ (call-next-multi-method) t "no-compile" set-word-prop
@@ -1137,3 +1155,34 @@ SYNTAX: call-next-multi-method
    [ literalize suffix! \ (call-next-multi-method) suffix! ]
    [ not-in-a-multi-method-error ] if* ;
 
+
+! : add-depends-on-generic ( class generic -- )
+!     generic-dependencies get
+!     [ [ ?class-or ] change-at ] [ 2drop ] if* ;
+
+! TUPLE: depends-on-multi-method classes generic multi-method ;
+
+! : add-depends-on-multi-method ( classes generic multi-method -- )
+!     over +conditional+ depends-on
+!     depends-on-multi-method add-conditional-dependency ;
+
+! :: multi-method-for-classes ( classes generic -- multi-method/f )
+!     generic methods [ drop classes = ] assoc-find
+!     nip [ second ] when ;
+
+! M: depends-on-multi-method satisfied?
+!     {
+!         [ classes>> [ classoid? ] all? ]
+!         [
+!             [ [ classes>> ] [ generic>> ] bi multi-method-for-classes ]
+!             [ multi-method>> ] bi eq?
+!         ]
+!     } 1&& ;
+
+! ! Method inlining
+! : add-multi-method-dependency ( #call -- )
+!     dup method>> word? [
+!         [ [ class>> ] [ word>> ] bi add-depends-on-generic ]
+!         [ [ class>> ] [ word>> ] [ method>> ] tri add-depends-on-method ]
+!         bi
+!     ] [ drop ] if ;
