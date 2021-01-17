@@ -7,7 +7,8 @@ kernel.private layouts locals locals.parser make math math.order
 math.private namespaces parser prettyprint prettyprint.backend
 prettyprint.custom prettyprint.sections quotations see sequences
 sequences.generalizations sets shuffle sorting splitting
-stack-checker.transforms summary vectors words words.symbol ;
+stack-checker.dependencies stack-checker.transforms summary
+vectors words words.symbol ;
 FROM: namespaces => set ;
 FROM: generic.parser => current-method with-method-definition ;
 QUALIFIED-WITH: generic.single.private gsp
@@ -1094,10 +1095,40 @@ M: not-in-a-multi-method-error summary
         call-next-multi-method-quot
     ] [ no-next-multi-method ] ?if ;
 
+:: next-multi-method ( classes generic  -- method/f )
+    generic methods sort-methods
+    [ drop classes classes< +gt+ = ] assoc-filter [
+        first classes swap t [ class<= and ] 2reduce
+    ] find nip dup [ second ] when ;
+! TODO: write unit-test for next-multi-method
+
+TUPLE: depends-on-next-multi-method classes generic next-multi-method ;
+
+: add-depends-on-next-multi-method ( classes generic next-method -- )
+    over +conditional+ depends-on
+    depends-on-next-multi-method add-conditional-dependency ;
+
+M: depends-on-next-multi-method satisfied?
+    {
+        [ classes>> [ classoid? ] all? ]
+        [
+            [ [ classes>> ] [ generic>> ] bi next-multi-method ]
+            [ next-multi-method>> ] bi eq? ]
+    } 1&& ;
+
+: add-next-multi-method-dependency ( method -- )
+    [ "method-specializer" word-prop ]
+    [ "multi-generic" word-prop ] bi
+    2dup next-multi-method
+    add-depends-on-next-multi-method ;
+
 \ (call-next-multi-method) [
-    [ next-multi-method-quot ] [ '[ _ no-next-multi-method ] ] bi or
+    [ add-next-multi-method-dependency ]
+    [
+        [ next-multi-method-quot ]
+        [ '[ _ no-next-multi-method ] ] bi or ]
+    bi
 ] 1 define-transform
-! TODO: Register dependency information
 
 \ (call-next-multi-method) t "no-compile" set-word-prop
 
