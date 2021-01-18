@@ -422,8 +422,26 @@ M: no-method error.
     "Available methods: " print
     generic>> methods values stack. ;
 
-: forget-method ( specializer generic -- )
-    [ delete-at ] with-methods ;
+! GENERIC: forget-method* ( specializer dispatch-type -- )
+
+:: forget-method ( specializer generic -- )
+    specializer generic [ delete-at ] with-methods
+!    specializer generic "dispatch-type" word-prop forget-method*
+ ;
+
+
+! M: f forget-method* 2drop ;
+
+! M: dispatch forget-method* 2drop ;
+
+! M:: single-dispatch forget-method* ( specializer dispatch-type -- )
+!     dispatch-type [ methods>> ] [ #>> ] bi specializer nth swap delete-at ;
+
+! M:: math-dispatch forget-method* ( specializer dispatch-type -- )
+!     dispatch-type methods>> bi specializer first swap delete-at ;
+
+
+
 
 : method>spec ( method -- spec )
     [ "method-specializer" word-prop ]
@@ -538,7 +556,6 @@ M: multi-method pprint*
     [ "described-effect" word-prop pprint* ]
     bi
     block> ;
-
 
 
 ! ! ! ! single ! ! ! !
