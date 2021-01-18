@@ -539,7 +539,6 @@ M: multi-method pprint*
     bi
     block> ;
 
-M: multi-dispatch-generic make-inline cannot-be-inline ;
 
 
 ! ! ! ! single ! ! ! !
