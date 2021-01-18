@@ -364,8 +364,7 @@ M: multi-method parent-word
     over [
         [ "multi-methods" word-prop ] dip call
     ] dip
-    update-generic
- ; inline
+    update-generic ; inline
 
 GENERIC: implementor-classes ( obj -- class )
 
@@ -430,12 +429,12 @@ M: no-method error.
 : define-generic ( word effect hooks -- )
     [ over swap set-stack-effect ] dip
     over swap "hooks" set-word-prop
-    {
+    dup "multi-methods" word-prop [ drop ] [
         [ H{ } clone "multi-methods" set-word-prop ]
         [ f "mathematical" set-word-prop ]
         [ update-generic ]
-    } cleave ;
-
+        tri
+    ] if ;
 
 ! ! ! Syntax ! ! !
 SYNTAX: MGENERIC: scan-new-word scan-effect
@@ -512,17 +511,12 @@ M: multi-generic forget*
 M: multi-method definer
     drop \ MM: \ ; ;
 
-! M: multi-method forget*
-!     ! [
-!     !     "method-specializer" "multi-generic"
-!     !     [ word-prop ] bi-curry@ bi forget-method ]
-
-!     [
-!         [ "method-specializer" word-prop ]
-!         [  "multi-generic" word-prop ]
-!         bi forget-method ]
-!     [ call-next-method ]
-!     bi ;
+M: multi-method forget*
+    [
+        "method-specializer" "multi-generic"
+        [ word-prop ] bi-curry@ bi forget-method ]
+    [ call-next-method ]
+    bi ;
 
 M: multi-method synopsis*
     dup definer.
@@ -639,7 +633,7 @@ C: <predicate-engine> predicate-engine
 ! 2. Convert methods
 : split-methods ( assoc class -- first second )
     [ [ nip class<= ] curry assoc-reject ]
-    [ [ nip class<=     ] curry assoc-filter ] 2bi ;
+    [ [ nip class<= ] curry assoc-filter ] 2bi ;
 
 : convert-methods ( assoc class word -- assoc' )
     over [ split-methods ] 2dip pick assoc-empty?
