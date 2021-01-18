@@ -40,8 +40,8 @@ TUPLE: single-hook-dispatch < single-dispatch var ;
 
 TUPLE: math-dispatch < non-multi-dispatch ;
 
-: non-multi-generic? ( word -- ? )
-    "dispatch-type" word-prop non-multi-dispatch? ; inline
+PREDICATE: multi-dispatch-generic < multi-generic
+    "dispatch-type" word-prop multi-dispatch? ;
 
 ERROR: bad-dispatch-position # ;
 
@@ -252,6 +252,9 @@ ERROR: no-method arguments generic ;
     [ "unannotated-def" remove-word-prop ]
     [ dup "dispatch-type" word-prop perform-dispatch ]
     bi ;
+
+: non-multi-generic? ( word -- ? )
+    "dispatch-type" word-prop non-multi-dispatch? ; inline
 
 ERROR: check-method-error class generic ;
 
@@ -535,6 +538,8 @@ M: multi-method pprint*
     [ "described-effect" word-prop pprint* ]
     bi
     block> ;
+
+M: multi-dispatch-generic make-inline cannot-be-inline ;
 
 
 ! ! ! ! single ! ! ! !
