@@ -43,6 +43,8 @@ TUPLE: math-dispatch < non-multi-dispatch ;
 PREDICATE: multi-dispatch-generic < multi-generic
     "dispatch-type" word-prop multi-dispatch? ;
 
+C: <multi-dispatch> multi-dispatch
+
 ERROR: bad-dispatch-position # ;
 
 : <single-standard-dispatch> ( # -- single-standard-dispatch )
@@ -52,6 +54,8 @@ ERROR: bad-dispatch-position # ;
 
 : <single-hook-dispatch> ( var -- single-hook-dispatch )
     f swap single-hook-dispatch boa ;
+
+: <math-dispatch> ( -- math-dispatch ) f math-dispatch boa ;
 
 GENERIC: make-single-default-method ( generic dispatch -- method )
 
@@ -291,11 +295,30 @@ DEFER: define-single-default-method
 :: make-generic ( generic -- )
     generic "mathematical" word-prop [
         ! math-dispatch
-        math-dispatch new dup
+        <math-dispatch> dup
         generic swap "dispatch-type" set-word-prop
-        generic "multi-methods" word-prop [
-            [ dup length 1 - swap nth ] dip
-        ] assoc-map generic "dispatch-type" word-prop methods<<
+
+        ! second dispatch test
+        generic name>> "/second-dispatch" append f <word> :> second-dispatch
+        second-dispatch generic stack-effect set-stack-effect
+            generic
+            [
+                [ methods prepare-methods % sort-methods ] keep
+                multi-dispatch-quot %
+            ] [ ] make second-dispatch swap define
+            generic second-dispatch "second-dispatch" set-word-prop
+
+            generic "multi-methods" word-prop [
+                drop {
+                    [ second { fixnum bignum ratio float complex object } member? ]
+                    [ [ first ] [ second ] bi = ]
+                } 1&&
+            ] assoc-filter [
+                [ dup length 1 - swap nth ] dip
+            ] assoc-map
+
+        generic "dispatch-type" word-prop methods<<
+
         generic make-single-generic
         generic swap define-single-default-method
     ] [
@@ -326,7 +349,7 @@ DEFER: define-single-default-method
         ] [
             ! multi-dispach
             drop
-            generic multi-dispatch new "dispatch-type" set-word-prop
+            generic <multi-dispatch> "dispatch-type" set-word-prop
             generic
             [
                 [ methods prepare-methods % sort-methods ] keep
@@ -422,26 +445,8 @@ M: no-method error.
     "Available methods: " print
     generic>> methods values stack. ;
 
-! GENERIC: forget-method* ( specializer dispatch-type -- )
-
-:: forget-method ( specializer generic -- )
-    specializer generic [ delete-at ] with-methods
-!    specializer generic "dispatch-type" word-prop forget-method*
- ;
-
-
-! M: f forget-method* 2drop ;
-
-! M: dispatch forget-method* 2drop ;
-
-! M:: single-dispatch forget-method* ( specializer dispatch-type -- )
-!     dispatch-type [ methods>> ] [ #>> ] bi specializer nth swap delete-at ;
-
-! M:: math-dispatch forget-method* ( specializer dispatch-type -- )
-!     dispatch-type methods>> bi specializer first swap delete-at ;
-
-
-
+: forget-method ( specializer generic -- )
+    [ delete-at ] with-methods ;
 
 : method>spec ( method -- spec )
     [ "method-specializer" word-prop ]
@@ -452,7 +457,7 @@ M: no-method error.
     over swap "hooks" set-word-prop
     dup "multi-methods" word-prop [ drop ] [
         [ H{ } clone "multi-methods" set-word-prop ]
-        [ f "mathematical" set-word-prop ]
+        [ "mathematical" remove-word-prop ]
         [ update-generic ]
         tri
     ] if ;
@@ -473,15 +478,14 @@ ERROR: invalid-math-method-parameter ;
 
 M: invalid-math-method-parameter summary
     drop
-    "Mathematical multi-method's parameters are two stack \
-parameters of the same class." ;
+    "Mathematical multi-method's parameters are two stack parameters." ;
 
 :: create-method-in ( effect specializer generic -- method )
     generic "mathematical" word-prop [
         specializer {
             [ t [ array? not and ] reduce ]
             [ length 2 = ]
-            [ first2 = ]
+            ! [ first2 = ]
         } 1&& [
             invalid-math-method-parameter
         ] unless
@@ -955,6 +959,9 @@ M: single-hook-generic effective-method
 
 
 ! ! ! math ! ! ! !
+PREDICATE: math-generic < multi-generic
+    "dispatch-type" word-prop math-dispatch? ;
+
 PREDICATE: multi-math-class < class
     dup null bootstrap-word eq? [
         drop f
@@ -991,7 +998,8 @@ PRIVATE>
 ERROR: no-multi-math-method left right generic ;
 
 : default-multi-math-method ( generic -- quot )
-    [ no-multi-math-method ] curry [ ] like ;
+!    [ no-multi-math-method ] curry [ ] like ;
+    "second-dispatch" word-prop '[ _ execute ] ;
 
 <PRIVATE
 
@@ -1068,10 +1076,6 @@ M: math-dispatch perform-dispatch
         fixnum-optimization
         define
     ] with-variable ;
-
-PREDICATE: math-generic < multi-generic
-    "dispatch-type" word-prop math-dispatch? ;
-
 
 ! ! ! call-next-multi-method ! ! !
 SYMBOL: next-multi-method-quot-cache
