@@ -12,7 +12,6 @@ vectors words words.symbol ;
 FROM: namespaces => set ;
 FROM: generic.parser => current-method with-method-definition ;
 QUALIFIED-WITH: generic.single.private gsp
-QUALIFIED-WITH: generic.math gm
 IN: mm9
 
 PREDICATE: multi-generic < word
@@ -67,6 +66,11 @@ GENERIC#: check-dispatch-effect 1 ( dispatch effect -- )
 GENERIC: effective-method ( generic -- method )
 
 \ effective-method t "no-compile" set-word-prop
+
+PREDICATE: math-class < class
+    dup null bootstrap-word eq? [ drop f ] [
+        number bootstrap-word class<=
+    ] if ;
 
 : methods ( word -- alist )
     "multi-methods" word-prop >alist ;
@@ -302,7 +306,7 @@ SYMBOL: second-math-dispatch
         generic swap "dispatch-type" set-word-prop
         generic "multi-methods" word-prop [
             drop {
-                [ second gm:math-class? ]
+                [ second math-class? ]
                 [ [ first ] [ second ] bi = ]
             } 1&&
         ] assoc-filter [
@@ -954,11 +958,6 @@ M: single-hook-generic effective-method
 PREDICATE: math-generic < multi-generic
     "dispatch-type" word-prop math-dispatch? ;
 
-PREDICATE: multi-math-class < class
-    dup null bootstrap-word eq? [ drop f ] [
-        number bootstrap-word class<=
-    ] if ;
-
 <PRIVATE
 
 : bootstrap-words ( classes -- classes' )
@@ -992,7 +991,7 @@ ERROR: no-multi-math-method left right generic ;
         [
             "multi-methods" word-prop [
                 drop {
-                    [ second gm:math-class? ]
+                    [ second math-class? ]
                     [ [ first ] [ second ] bi = ]
                 } 1&&
             ] assoc-reject >alist
@@ -1021,6 +1020,7 @@ PRIVATE>
     ] [
         2drop object-method
     ] if ;
+
 
 <PRIVATE
 
@@ -1066,7 +1066,7 @@ M: math-dispatch make-single-default-method
 M: math-dispatch perform-dispatch
     drop dup generic-word [
         dup [ over ] [
-            dup multi-math-class? [
+            dup math-class? [
                 [ dup ] [ multi-math-method ] 2with math-dispatch-step
             ] [
                 drop object-method
