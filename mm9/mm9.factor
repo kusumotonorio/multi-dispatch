@@ -12,6 +12,7 @@ vectors words words.symbol ;
 FROM: namespaces => set ;
 FROM: generic.parser => current-method with-method-definition ;
 QUALIFIED-WITH: generic.single.private gsp
+QUALIFIED-WITH: generic.math gm
 IN: mm9
 
 PREDICATE: multi-generic < word
@@ -301,7 +302,7 @@ SYMBOL: second-math-dispatch
         generic swap "dispatch-type" set-word-prop
         generic "multi-methods" word-prop [
             drop {
-                [ second { fixnum bignum ratio float complex object } member? ]
+                [ second gm:math-class? ]
                 [ [ first ] [ second ] bi = ]
             } 1&&
         ] assoc-filter [
@@ -397,7 +398,9 @@ M: anonymous-intersection implementor-classes participants>> ;
     ] dip call ; inline
 
 : with-single-methods ( class generic quot -- )
-    [ "dispatch-type" word-prop methods>> ] prepose [ update-single-generic ] 2bi ; inline
+    [ "dispatch-type" word-prop methods>> ] prepose
+    [ update-single-generic ]
+    2bi ; inline
 
 : reveal-single-method ( method classes generic -- )
     [ [ [ adjoin ] with each ] with-implementors ]
@@ -952,9 +955,7 @@ PREDICATE: math-generic < multi-generic
     "dispatch-type" word-prop math-dispatch? ;
 
 PREDICATE: multi-math-class < class
-    dup null bootstrap-word eq? [
-        drop f
-    ] [
+    dup null bootstrap-word eq? [ drop f ] [
         number bootstrap-word class<=
     ] if ;
 
@@ -991,7 +992,7 @@ ERROR: no-multi-math-method left right generic ;
         [
             "multi-methods" word-prop [
                 drop {
-                    [ second { fixnum bignum ratio float complex object } member? ]
+                    [ second gm:math-class? ]
                     [ [ first ] [ second ] bi = ]
                 } 1&&
             ] assoc-reject >alist

@@ -38,7 +38,7 @@ SYMBOLS: thing1 thing2 ;
 
 
 ! multi-dispatch
-MGENERIC: md-beats? ( obj1 obj2 -- ? ) inline
+MGENERIC: md-beats? ( obj1 obj2 -- ? )
 
 MM:: md-beats? ( obj1: paper obj2: scissors -- ? ) obj1 obj2 2drop t ;
 MM:: md-beats? ( :scissors :rock -- ? ) t ;
@@ -338,10 +338,10 @@ M: the-man-No.028 sd-ln-beats? 2drop t ;
 M: the-man-No.029 sd-ln-beats? 2drop t ;
 M: the-man-No.030 sd-ln-beats? 2drop t ;
 
-: sd-ln-play ( man1 man2 -- ? ) sd-ln-beats? ; inline
+: sd-ln-play ( man1 man2 -- ? ) sd-ln-beats? ;
 
 
-MGENERIC: md-ln-beats? ( man man -- ? ) inline
+MGENERIC: md-ln-beats? ( man man -- ? )
 
 MM: md-ln-beats? ( :man :the-man-No.001 -- ? ) 2drop t ;
 MM: md-ln-beats? ( :man :the-man-No.002 -- ? ) 2drop t ;
@@ -374,7 +374,7 @@ MM: md-ln-beats? ( :man :the-man-No.028 -- ? ) 2drop t ;
 MM: md-ln-beats? ( :man :the-man-No.029 -- ? ) 2drop t ;
 MM: md-ln-beats? ( :man :the-man-No.030 -- ? ) 2drop t ;
 
-: md-ln-play ( man1 man2 -- ? ) md-ln-beats? ; inline
+: md-ln-play ( man1 man2 -- ? ) md-ln-beats? ;
 
 
 MGENERIC: smd-ln-beats? ( man man -- ? )
@@ -412,7 +412,7 @@ MM: smd-ln-beats? ( man :the-man-No.030 -- ? ) 2drop t ;
 
 : smd-ln-play ( man1 man2 -- ? ) smd-ln-beats? ;
 
-MGENERIC: my-plus ( a b -- c ) mathematical inline
+MGENERIC: my-plus ( a b -- c ) mathematical
 
 USING: math.private ;
 MM: my-plus ( a: fixnum b: fixnum -- c ) fixnum+ ;
