@@ -292,33 +292,22 @@ DEFER: make-generic
 
 DEFER: define-single-default-method
 
+SYMBOL: second-math-dispatch
+
 :: make-generic ( generic -- )
     generic "mathematical" word-prop [
         ! math-dispatch
         <math-dispatch> dup
         generic swap "dispatch-type" set-word-prop
-
-        ! second dispatch test
-        generic name>> "/second-dispatch" append f <word> :> second-dispatch
-        second-dispatch generic stack-effect set-stack-effect
-            generic
-            [
-                [ methods prepare-methods % sort-methods ] keep
-                multi-dispatch-quot %
-            ] [ ] make second-dispatch swap define
-            generic second-dispatch "second-dispatch" set-word-prop
-
-            generic "multi-methods" word-prop [
-                drop {
-                    [ second { fixnum bignum ratio float complex object } member? ]
-                    [ [ first ] [ second ] bi = ]
-                } 1&&
-            ] assoc-filter [
-                [ dup length 1 - swap nth ] dip
-            ] assoc-map
-
+        generic "multi-methods" word-prop [
+            drop {
+                [ second { fixnum bignum ratio float complex object } member? ]
+                [ [ first ] [ second ] bi = ]
+            } 1&&
+        ] assoc-filter [
+            [ dup length 1 - swap nth ] dip
+        ] assoc-map
         generic "dispatch-type" word-prop methods<<
-
         generic make-single-generic
         generic swap define-single-default-method
     ] [
@@ -997,16 +986,25 @@ PRIVATE>
 
 ERROR: no-multi-math-method left right generic ;
 
-: default-multi-math-method ( generic -- quot )
-!    [ no-multi-math-method ] curry [ ] like ;
-    "second-dispatch" word-prop '[ _ execute ] ;
+: multi-math-extended-dispatch ( generic -- quot )
+    [
+        [
+            "multi-methods" word-prop [
+                drop {
+                    [ second { fixnum bignum ratio float complex object } member? ]
+                    [ [ first ] [ second ] bi = ]
+                } 1&&
+            ] assoc-reject >alist
+            prepare-methods % sort-methods ] keep
+        multi-dispatch-quot %
+    ] [ ] make  ;
 
 <PRIVATE
 
 : (math-method) ( generic class -- quot )
     over ?lookup-method
     [ 1quotation ]
-    [ default-multi-math-method ] ?if ;
+    [ multi-math-extended-dispatch ] ?if ;
 
 PRIVATE>
 
@@ -1062,7 +1060,7 @@ PRIVATE>
 
 
 M: math-dispatch make-single-default-method
-    drop default-multi-math-method ;
+    drop multi-math-extended-dispatch ;
 
 M: math-dispatch perform-dispatch
     drop dup generic-word [

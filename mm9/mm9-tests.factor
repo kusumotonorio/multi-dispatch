@@ -38,7 +38,7 @@ SYMBOLS: thing1 thing2 ;
 
 
 ! multi-dispatch
-MGENERIC: md-beats? ( obj1 obj2 -- ? )
+MGENERIC: md-beats? ( obj1 obj2 -- ? ) inline
 
 MM:: md-beats? ( obj1: paper obj2: scissors -- ? ) obj1 obj2 2drop t ;
 MM:: md-beats? ( :scissors :rock -- ? ) t ;
@@ -341,7 +341,7 @@ M: the-man-No.030 sd-ln-beats? 2drop t ;
 : sd-ln-play ( man1 man2 -- ? ) sd-ln-beats? ; inline
 
 
-MGENERIC: md-ln-beats? ( man man -- ? )
+MGENERIC: md-ln-beats? ( man man -- ? ) inline
 
 MM: md-ln-beats? ( :man :the-man-No.001 -- ? ) 2drop t ;
 MM: md-ln-beats? ( :man :the-man-No.002 -- ? ) 2drop t ;
@@ -412,7 +412,7 @@ MM: smd-ln-beats? ( man :the-man-No.030 -- ? ) 2drop t ;
 
 : smd-ln-play ( man1 man2 -- ? ) smd-ln-beats? ;
 
-MGENERIC: my-plus ( a b -- c ) mathematical
+MGENERIC: my-plus ( a b -- c ) mathematical inline
 
 USING: math.private ;
 MM: my-plus ( a: fixnum b: fixnum -- c ) fixnum+ ;
@@ -425,13 +425,23 @@ MM: my-plus ( a: complex b: complex -- c ) [ my-plus ] complex-op ;
 USE: math.ratios.private
 MM: my-plus ( a: ratio b: ratio -- c ) scale+d [ my-plus ] [ / ] bi* ;
 
-{ 3 3.0 3.0 1+1/6 1.0 C{ 2.0 -1 } } [
+USE: strings
+MM: my-plus ( a: string b: string -- c ) append ;
+
+USE: unicode
+MM: my-plus ( a: character b: string -- c ) swap 1array >string prepend ;
+
+{ 3 3.0 3.0 3 1+1/6 1.0 C{ 2.0 -1 } "1 + 2.0 = 3.0" "1.0 + 2 = 3.0" } [
     1 2 my-plus
     1.0 2 my-plus
     1 2.0 my-plus
+    1 2 >bignum my-plus
+
     1/2 2/3 my-plus
     0.5 1/2 my-plus
     C{ 0 -1 } 2.0 my-plus
+    "1 + 2.0 = " "3.0" my-plus
+    CHAR: 1 ".0 + 2 = 3.0" my-plus
 ] unit-test
 
 
