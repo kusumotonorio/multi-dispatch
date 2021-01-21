@@ -431,12 +431,13 @@ MM: my-plus ( a: string b: string -- c ) append ;
 USE: unicode
 MM: my-plus ( a: character b: string -- c ) swap 1array >string prepend ;
 
-{ 3 3.0 3.0 3 1+1/6 1.0 C{ 2.0 -1 } "1 + 2.0 = 3.0" "1.0 + 2 = 3.0" } [
+USE: classes
+
+{ 3 3.0 3.0 3 bignum 1+1/6 1.0 C{ 2.0 -1 } "1 + 2.0 = 3.0" "1.0 + 2 = 3.0" } [
     1 2 my-plus
     1.0 2 my-plus
     1 2.0 my-plus
-    1 2 >bignum my-plus
-
+    1 2 >bignum my-plus dup class-of
     1/2 2/3 my-plus
     0.5 1/2 my-plus
     C{ 0 -1 } 2.0 my-plus

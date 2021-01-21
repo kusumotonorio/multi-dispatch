@@ -621,6 +621,10 @@ ERROR: method-lookup-failed class generic ;
     ] [ "default-method" word-prop ]
     bi or ;
 
+: single-method-for-class ( class generic -- method/f )
+    [ nip ] [ nearest-class ] 2bi
+    [ swap ?lookup-method ] [ drop f ] if* ;
+
 M: single-dispatch make-single-default-method
     [
         [ [picker] ] dip '[ @ _ no-single-method ]
@@ -899,16 +903,16 @@ M: single-standard-dispatch check-dispatch-effect
     [ single-dispatch# ] [ in>> length ] bi* over >
     [ drop ] [ bad-dispatch-position ] if ;
 
-PREDICATE: single-standard-generic < multi-generic
+PREDICATE: multi-standard-generic < multi-generic
     "dispatch-type" word-prop single-standard-dispatch? ;
 
-PREDICATE: single-simple-generic < single-standard-generic
+PREDICATE: multi-simple-generic < multi-standard-generic
     "dispatch-type" word-prop #>> 0 = ;
 
 CONSTANT: single-simple-dispatch
     T{ single-standard-dispatch f 0 }
 
-: define-single-simple-generic ( word effect -- )
+: define-multi-simple-generic ( word effect -- )
     [ single-simple-dispatch ] dip define-single-generic ;
 
 M: single-standard-dispatch [picker]
@@ -916,7 +920,7 @@ M: single-standard-dispatch [picker]
 
 M: single-standard-dispatch single-dispatch# #>> ;
 
-M: single-standard-generic effective-method
+M: multi-standard-generic effective-method
     [ get-datastack ] dip [ "dispatch-type" word-prop #>> swap <reversed> nth ] keep
     method-for-object ;
 
@@ -955,7 +959,7 @@ M: single-hook-generic effective-method
 
 
 ! ! ! math ! ! ! !
-PREDICATE: math-generic < multi-generic
+PREDICATE: multi-math-generic < multi-generic
     "dispatch-type" word-prop math-dispatch? ;
 
 <PRIVATE
@@ -1174,6 +1178,38 @@ SYNTAX: call-next-multi-method
    [ not-in-a-multi-method-error ] if* ;
 
 
+! MEMO
+
+! USING: compiler.tree.propagation.info ;
+
+! : inlining-multi-standard-method
+!     ( #call word -- class/f method/f )
+!     dup "dispatch-type" word-prop methods>> assoc-empty?
+!     [ 2drop f f ] [
+!         2dup [ in-d>> length ] [ single-dispatch# ] bi* <=
+!         [ 2drop f f ] [
+!             [ in-d>> <reversed> ] [ [ single-dispatch# ] keep ] bi*
+!             [ swap nth value-info class>> dup ] dip
+!             single-method-for-class
+!         ] if
+!     ] if ;
+
+! USE: math.partial-dispatch
+
+! : inlining-multi-math-method ( #call word -- class/f quot/f )
+!     swap in-d>> first2
+!     [ value-info class>> normalize-math-class ] bi@
+!     3dup math-both-known? [ math-method* ] [ 3drop f ] if
+!     number swap ;
+
+
+! USE: compiler.tree.propagation.inlining
+
+! : inline-multi-standard-method ( #call word -- ? )
+!    dupd inlining-multi-standard-method eliminate-dispatch ;
+
+
+
 ! : add-depends-on-generic ( class generic -- )
 !     generic-dependencies get
 !     [ [ ?class-or ] change-at ] [ 2drop ] if* ;
@@ -1201,6 +1237,6 @@ SYNTAX: call-next-multi-method
 ! : add-multi-method-dependency ( #call -- )
 !     dup method>> word? [
 !         [ [ class>> ] [ word>> ] bi add-depends-on-generic ]
-!         [ [ class>> ] [ word>> ] [ method>> ] tri add-depends-on-method ]
+!         [ [ class>> ] [ word>> ] [ method>> ] tri add-depends-on-multi-method ]
 !         bi
 !     ] [ drop ] if ;
