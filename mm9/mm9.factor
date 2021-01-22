@@ -1158,7 +1158,8 @@ M: depends-on-next-multi-method satisfied?
 
 : add-next-multi-method-dependency ( method -- )
     [ "method-specializer" word-prop ]
-    [ "multi-generic" word-prop ] bi
+    [ "multi-generic" word-prop ]
+    bi
     2dup next-multi-method
     add-depends-on-next-multi-method ;
 

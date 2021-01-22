@@ -20,8 +20,6 @@ SYMBOLS: thing1 thing2 ;
         { scissors [ paper?    [ t ] [ f ] if ] }
     } case ;
 
-: play ( obj1 obj2 -- ? ) beats? ;
-
 
 ! multi-dispatch
 MGENERIC: md-beats? ( obj1 obj2 -- ? )
@@ -30,8 +28,6 @@ MM:: md-beats? ( obj1: paper obj2: scissors -- ? ) obj1 obj2 2drop t ;
 MM:: md-beats? ( :scissors :rock -- ? ) t ;
 MM:: md-beats? ( :rock :paper -- ? ) t ;
 MM:: md-beats? ( :thing :thing -- ? ) f ;
-
-: md-play ( obj1 obj2 -- ? ) md-beats? ;
 
 
 ! multi-hook-dispatch
@@ -42,8 +38,6 @@ MM: mhd-beats? ( thing1: scissors thing2: rock | -- ? ) t ;
 MM: mhd-beats? ( thing1: rock thing2: paper | -- ? ) t ;
 MM: mhd-beats? ( thing1: thing thing2: thing | -- ? ) f ;
 
-: mhd-play ( -- ? ) mhd-beats? ;
-
 
 ! sigle-dispach
 GENERIC: sd-beats? ( obj1 obj2 -- ? )
@@ -51,8 +45,6 @@ GENERIC: sd-beats? ( obj1 obj2 -- ? )
 M: paper sd-beats? drop rock? [ t ] [ f ] if ;
 M: scissors sd-beats? drop paper? [ t ] [ f ] if ;
 M: rock sd-beats? drop scissors? [ t ] [ f ] if ;
-
-: sd-play ( obj1 obj2 -- ? ) sd-beats? ;
 
 
 ! multi-sigle-dispach
@@ -62,8 +54,6 @@ MM: smd-beats? ( obj1 obj2: paper -- ? )    drop rock? [ t ] [ f ] if ;
 MM: smd-beats? ( obj1 obj2: scissors -- ? ) drop paper? [ t ] [ f ] if ;
 MM: smd-beats? ( obj1 obj2: rock -- ? )     drop scissors? [ t ] [ f ] if ;
 
-: smd-play ( obj1 obj2 -- ? ) smd-beats? ;
-
 
 ! sigle-hook-dispatch
 HOOK: shd-beats? thing2 ( -- ? )
@@ -72,8 +62,6 @@ M: paper shd-beats? thing1 get rock? [ t ] [ f ] if ;
 M: scissors shd-beats? thing1 get paper? [ t ] [ f ] if ;
 M: rock shd-beats? thing1 get scissors? [ t ] [ f ] if ;
 
-: shd-play ( -- ? ) shd-beats? ;
-
 
 ! sigle-spac-hook-multi-dispatch
 MGENERIC: shmd-beats? ( thing2 | -- ? )
@@ -81,8 +69,6 @@ MGENERIC: shmd-beats? ( thing2 | -- ? )
 MM: shmd-beats? ( thing2: scissors | -- ? ) thing1 get paper? [ t ] [ f ] if ;
 MM: shmd-beats? ( thing2: rock | -- ? ) thing1 get scissors? [ t ] [ f ] if ;
 MM: shmd-beats? ( thing2: paper | -- ? ) thing1 get rock? [ t ] [ f ] if ;
-
-: shmd-play ( -- ? ) shd-beats? ;
 
 
 MIXIN: man
@@ -152,8 +138,6 @@ M: the-man-No.028 sd-ln-beats? 2drop t ;
 M: the-man-No.029 sd-ln-beats? 2drop t ;
 M: the-man-No.030 sd-ln-beats? 2drop t ;
 
-: sd-ln-play ( man1 man2 -- ? ) sd-ln-beats? ;
-
 
 MGENERIC: md-ln-beats? ( man man -- ? )
 
@@ -187,8 +171,6 @@ MM: md-ln-beats? ( :man :the-man-No.027 -- ? ) 2drop t ;
 MM: md-ln-beats? ( :man :the-man-No.028 -- ? ) 2drop t ;
 MM: md-ln-beats? ( :man :the-man-No.029 -- ? ) 2drop t ;
 MM: md-ln-beats? ( :man :the-man-No.030 -- ? ) 2drop t ;
-
-: md-ln-play ( man1 man2 -- ? ) md-ln-beats? ;
 
 
 MGENERIC: smd-ln-beats? ( man man -- ? )
@@ -224,8 +206,6 @@ MM: smd-ln-beats? ( man :the-man-No.028 -- ? ) 2drop t ;
 MM: smd-ln-beats? ( man :the-man-No.029 -- ? ) 2drop t ;
 MM: smd-ln-beats? ( man :the-man-No.030 -- ? ) 2drop t ;
 
-: smd-ln-play ( man1 man2 -- ? ) smd-ln-beats? ;
-
 
 CONSTANT: TIMES       100,000
 CONSTANT: COMBI-TIMES 100,000
@@ -251,17 +231,17 @@ SYMBOL: ref
     gc
     [
         TIMES [
-            paper paper       play drop
-            paper scissors    play drop
-            paper rock        play drop
+            paper paper       beats? drop
+            paper scissors    beats? drop
+            paper rock        beats? drop
 
-            scissors paper    play drop
-            scissors scissors play drop
-            scissors rock     play drop
+            scissors paper    beats? drop
+            scissors scissors beats? drop
+            scissors rock     beats? drop
 
-            rock paper        play drop
-            rock scissors     play drop
-            rock rock         play drop
+            rock paper        beats? drop
+            rock scissors     beats? drop
+            rock rock         beats? drop
         ] times
     ] benchmark dup no-dispatch-time set
     1.0e9 /
@@ -270,17 +250,17 @@ SYMBOL: ref
     gc
     [
         TIMES [
-            paper paper       sd-play drop
-            paper scissors    sd-play drop
-            paper rock        sd-play drop
+            paper paper       sd-beats? drop
+            paper scissors    sd-beats? drop
+            paper rock        sd-beats? drop
 
-            scissors paper    sd-play drop
-            scissors scissors sd-play drop
-            scissors rock     sd-play drop
+            scissors paper    sd-beats? drop
+            scissors scissors sd-beats? drop
+            scissors rock     sd-beats? drop
 
-            rock paper        sd-play drop
-            rock scissors     sd-play drop
-            rock rock         sd-play drop
+            rock paper        sd-beats? drop
+            rock scissors     sd-beats? drop
+            rock rock         sd-beats? drop
         ] times
     ] benchmark
     [ 1.0e9 / ] [ no-dispatch-time get / ] bi
@@ -289,17 +269,17 @@ SYMBOL: ref
     gc
     [
         TIMES [
-            paper paper       md-play drop
-            paper scissors    md-play drop
-            paper rock        md-play drop
+            paper paper       md-beats? drop
+            paper scissors    md-beats? drop
+            paper rock        md-beats? drop
 
-            scissors paper    md-play drop
-            scissors scissors md-play drop
-            scissors rock     md-play drop
+            scissors paper    md-beats? drop
+            scissors scissors md-beats? drop
+            scissors rock     md-beats? drop
 
-            rock paper        md-play drop
-            rock scissors     md-play drop
-            rock rock         md-play drop
+            rock paper        md-beats? drop
+            rock scissors     md-beats? drop
+            rock rock         md-beats? drop
         ] times
     ] benchmark
     [ 1.0e9 / ] [ no-dispatch-time get / ] bi
@@ -308,17 +288,17 @@ SYMBOL: ref
     gc
     [
         TIMES [
-            paper paper       smd-play drop
-            paper scissors    smd-play drop
-            paper rock        smd-play drop
+            paper paper       smd-beats? drop
+            paper scissors    smd-beats? drop
+            paper rock        smd-beats? drop
 
-            scissors paper    smd-play drop
-            scissors scissors smd-play drop
-            scissors rock     smd-play drop
+            scissors paper    smd-beats? drop
+            scissors scissors smd-beats? drop
+            scissors rock     smd-beats? drop
 
-            rock paper        smd-play drop
-            rock scissors     smd-play drop
-            rock rock         smd-play drop
+            rock paper        smd-beats? drop
+            rock scissors     smd-beats? drop
+            rock rock         smd-beats? drop
         ] times
     ] benchmark
     [ 1.0e9 / ] [ no-dispatch-time get / ] bi
@@ -328,17 +308,17 @@ SYMBOL: ref
     [
         TIMES [
             paper    thing1 set
-            paper    thing2 set shd-play drop
-            scissors thing2 set shd-play drop
-            rock     thing2 set shd-play drop
+            paper    thing2 set shd-beats? drop
+            scissors thing2 set shd-beats? drop
+            rock     thing2 set shd-beats? drop
 
-            scissors thing1 set paper thing2 set shd-play drop scissors
-            thing2 set shd-play drop rock thing2 set shd-play drop
+            scissors thing1 set paper thing2 set shd-beats? drop scissors
+            thing2 set shd-beats? drop rock thing2 set shd-beats? drop
 
             rock     thing1 set
-            paper    thing2 set shd-play drop
-            scissors thing2 set shd-play drop
-            rock     thing2 set shd-play drop
+            paper    thing2 set shd-beats? drop
+            scissors thing2 set shd-beats? drop
+            rock     thing2 set shd-beats? drop
         ] times
     ] benchmark
     [ 1.0e9 / ] [ no-dispatch-time get / ] bi
@@ -348,19 +328,19 @@ SYMBOL: ref
     [
         TIMES [
             paper    thing1 set
-            paper    thing2 set mhd-play drop
-            scissors thing2 set mhd-play drop
-            rock     thing2 set mhd-play drop
+            paper    thing2 set mhd-beats? drop
+            scissors thing2 set mhd-beats? drop
+            rock     thing2 set mhd-beats? drop
 
             scissors thing1 set
-            paper    thing2 set mhd-play drop
-            scissors thing2 set mhd-play drop
-            rock     thing2 set mhd-play drop
+            paper    thing2 set mhd-beats? drop
+            scissors thing2 set mhd-beats? drop
+            rock     thing2 set mhd-beats? drop
 
             rock     thing1 set
-            paper    thing2 set mhd-play drop
-            scissors thing2 set mhd-play drop
-            rock     thing2 set mhd-play drop
+            paper    thing2 set mhd-beats? drop
+            scissors thing2 set mhd-beats? drop
+            rock     thing2 set mhd-beats? drop
         ] times
     ] benchmark
     [ 1.0e9 / ] [ no-dispatch-time get / ] bi
@@ -370,17 +350,17 @@ SYMBOL: ref
     [
         TIMES [
             paper    thing1 set
-            paper    thing2 set shmd-play drop
-            scissors thing2 set shmd-play drop
-            rock     thing2 set shmd-play drop
+            paper    thing2 set shmd-beats? drop
+            scissors thing2 set shmd-beats? drop
+            rock     thing2 set shmd-beats? drop
 
-            scissors thing1 set paper thing2 set shd-play drop scissors
-            thing2 set shd-play drop rock thing2 set shd-play drop
+            scissors thing1 set paper thing2 set shd-beats? drop scissors
+            thing2 set shd-beats? drop rock thing2 set shd-beats? drop
 
             rock     thing1 set
-            paper    thing2 set shmd-play drop
-            scissors thing2 set shmd-play drop
-            rock     thing2 set shmd-play drop
+            paper    thing2 set shmd-beats? drop
+            scissors thing2 set shmd-beats? drop
+            rock     thing2 set shmd-beats? drop
         ] times
     ] benchmark
     [ 1.0e9 / ] [ no-dispatch-time get / ] bi
@@ -405,31 +385,31 @@ SYMBOL: ref
     gc
     [
         COMBI-TIMES [
-            the-man-No.001 the-man-No.001 sd-ln-play drop
-            the-man-No.001 the-man-No.002 sd-ln-play drop
-            the-man-No.001 the-man-No.003 sd-ln-play drop
-            the-man-No.001 the-man-No.004 sd-ln-play drop
-            the-man-No.001 the-man-No.005 sd-ln-play drop
-            the-man-No.002 the-man-No.001 sd-ln-play drop
-            the-man-No.002 the-man-No.002 sd-ln-play drop
-            the-man-No.002 the-man-No.003 sd-ln-play drop
-            the-man-No.002 the-man-No.004 sd-ln-play drop
-            the-man-No.002 the-man-No.005 sd-ln-play drop
-            the-man-No.003 the-man-No.001 sd-ln-play drop
-            the-man-No.003 the-man-No.002 sd-ln-play drop
-            the-man-No.003 the-man-No.003 sd-ln-play drop
-            the-man-No.003 the-man-No.004 sd-ln-play drop
-            the-man-No.003 the-man-No.005 sd-ln-play drop
-            the-man-No.004 the-man-No.001 sd-ln-play drop
-            the-man-No.004 the-man-No.002 sd-ln-play drop
-            the-man-No.004 the-man-No.003 sd-ln-play drop
-            the-man-No.004 the-man-No.004 sd-ln-play drop
-            the-man-No.004 the-man-No.005 sd-ln-play drop
-            the-man-No.005 the-man-No.001 sd-ln-play drop
-            the-man-No.005 the-man-No.002 sd-ln-play drop
-            the-man-No.005 the-man-No.003 sd-ln-play drop
-            the-man-No.005 the-man-No.004 sd-ln-play drop
-            the-man-No.005 the-man-No.005 sd-ln-play drop
+            the-man-No.001 the-man-No.001 sd-ln-beats? drop
+            the-man-No.001 the-man-No.002 sd-ln-beats? drop
+            the-man-No.001 the-man-No.003 sd-ln-beats? drop
+            the-man-No.001 the-man-No.004 sd-ln-beats? drop
+            the-man-No.001 the-man-No.005 sd-ln-beats? drop
+            the-man-No.002 the-man-No.001 sd-ln-beats? drop
+            the-man-No.002 the-man-No.002 sd-ln-beats? drop
+            the-man-No.002 the-man-No.003 sd-ln-beats? drop
+            the-man-No.002 the-man-No.004 sd-ln-beats? drop
+            the-man-No.002 the-man-No.005 sd-ln-beats? drop
+            the-man-No.003 the-man-No.001 sd-ln-beats? drop
+            the-man-No.003 the-man-No.002 sd-ln-beats? drop
+            the-man-No.003 the-man-No.003 sd-ln-beats? drop
+            the-man-No.003 the-man-No.004 sd-ln-beats? drop
+            the-man-No.003 the-man-No.005 sd-ln-beats? drop
+            the-man-No.004 the-man-No.001 sd-ln-beats? drop
+            the-man-No.004 the-man-No.002 sd-ln-beats? drop
+            the-man-No.004 the-man-No.003 sd-ln-beats? drop
+            the-man-No.004 the-man-No.004 sd-ln-beats? drop
+            the-man-No.004 the-man-No.005 sd-ln-beats? drop
+            the-man-No.005 the-man-No.001 sd-ln-beats? drop
+            the-man-No.005 the-man-No.002 sd-ln-beats? drop
+            the-man-No.005 the-man-No.003 sd-ln-beats? drop
+            the-man-No.005 the-man-No.004 sd-ln-beats? drop
+            the-man-No.005 the-man-No.005 sd-ln-beats? drop
         ] times
     ] benchmark dup ref namespaces:set
     1.0e9 /
@@ -438,31 +418,31 @@ SYMBOL: ref
     gc
     [
         COMBI-TIMES [
-            the-man-No.001 the-man-No.001 md-ln-play drop
-            the-man-No.001 the-man-No.002 md-ln-play drop
-            the-man-No.001 the-man-No.003 md-ln-play drop
-            the-man-No.001 the-man-No.004 md-ln-play drop
-            the-man-No.001 the-man-No.005 md-ln-play drop
-            the-man-No.002 the-man-No.001 md-ln-play drop
-            the-man-No.002 the-man-No.002 md-ln-play drop
-            the-man-No.002 the-man-No.003 md-ln-play drop
-            the-man-No.002 the-man-No.004 md-ln-play drop
-            the-man-No.002 the-man-No.005 md-ln-play drop
-            the-man-No.003 the-man-No.001 md-ln-play drop
-            the-man-No.003 the-man-No.002 md-ln-play drop
-            the-man-No.003 the-man-No.003 md-ln-play drop
-            the-man-No.003 the-man-No.004 md-ln-play drop
-            the-man-No.003 the-man-No.005 md-ln-play drop
-            the-man-No.004 the-man-No.001 md-ln-play drop
-            the-man-No.004 the-man-No.002 md-ln-play drop
-            the-man-No.004 the-man-No.003 md-ln-play drop
-            the-man-No.004 the-man-No.004 md-ln-play drop
-            the-man-No.004 the-man-No.005 md-ln-play drop
-            the-man-No.005 the-man-No.001 md-ln-play drop
-            the-man-No.005 the-man-No.002 md-ln-play drop
-            the-man-No.005 the-man-No.003 md-ln-play drop
-            the-man-No.005 the-man-No.004 md-ln-play drop
-            the-man-No.005 the-man-No.005 md-ln-play drop
+            the-man-No.001 the-man-No.001 md-ln-beats? drop
+            the-man-No.001 the-man-No.002 md-ln-beats? drop
+            the-man-No.001 the-man-No.003 md-ln-beats? drop
+            the-man-No.001 the-man-No.004 md-ln-beats? drop
+            the-man-No.001 the-man-No.005 md-ln-beats? drop
+            the-man-No.002 the-man-No.001 md-ln-beats? drop
+            the-man-No.002 the-man-No.002 md-ln-beats? drop
+            the-man-No.002 the-man-No.003 md-ln-beats? drop
+            the-man-No.002 the-man-No.004 md-ln-beats? drop
+            the-man-No.002 the-man-No.005 md-ln-beats? drop
+            the-man-No.003 the-man-No.001 md-ln-beats? drop
+            the-man-No.003 the-man-No.002 md-ln-beats? drop
+            the-man-No.003 the-man-No.003 md-ln-beats? drop
+            the-man-No.003 the-man-No.004 md-ln-beats? drop
+            the-man-No.003 the-man-No.005 md-ln-beats? drop
+            the-man-No.004 the-man-No.001 md-ln-beats? drop
+            the-man-No.004 the-man-No.002 md-ln-beats? drop
+            the-man-No.004 the-man-No.003 md-ln-beats? drop
+            the-man-No.004 the-man-No.004 md-ln-beats? drop
+            the-man-No.004 the-man-No.005 md-ln-beats? drop
+            the-man-No.005 the-man-No.001 md-ln-beats? drop
+            the-man-No.005 the-man-No.002 md-ln-beats? drop
+            the-man-No.005 the-man-No.003 md-ln-beats? drop
+            the-man-No.005 the-man-No.004 md-ln-beats? drop
+            the-man-No.005 the-man-No.005 md-ln-beats? drop
         ] times
     ] benchmark
     [ 1.0e9 / ] [ ref get / ] bi
@@ -471,33 +451,45 @@ SYMBOL: ref
     gc
     [
         COMBI-TIMES [
-            the-man-No.001 the-man-No.001 smd-ln-play drop
-            the-man-No.001 the-man-No.002 smd-ln-play drop
-            the-man-No.001 the-man-No.003 smd-ln-play drop
-            the-man-No.001 the-man-No.004 smd-ln-play drop
-            the-man-No.001 the-man-No.005 smd-ln-play drop
-            the-man-No.002 the-man-No.001 smd-ln-play drop
-            the-man-No.002 the-man-No.002 smd-ln-play drop
-            the-man-No.002 the-man-No.003 smd-ln-play drop
-            the-man-No.002 the-man-No.004 smd-ln-play drop
-            the-man-No.002 the-man-No.005 smd-ln-play drop
-            the-man-No.003 the-man-No.001 smd-ln-play drop
-            the-man-No.003 the-man-No.002 smd-ln-play drop
-            the-man-No.003 the-man-No.003 smd-ln-play drop
-            the-man-No.003 the-man-No.004 smd-ln-play drop
-            the-man-No.003 the-man-No.005 smd-ln-play drop
-            the-man-No.004 the-man-No.001 smd-ln-play drop
-            the-man-No.004 the-man-No.002 smd-ln-play drop
-            the-man-No.004 the-man-No.003 smd-ln-play drop
-            the-man-No.004 the-man-No.004 smd-ln-play drop
-            the-man-No.004 the-man-No.005 smd-ln-play drop
-            the-man-No.005 the-man-No.001 smd-ln-play drop
-            the-man-No.005 the-man-No.002 smd-ln-play drop
-            the-man-No.005 the-man-No.003 smd-ln-play drop
-            the-man-No.005 the-man-No.004 smd-ln-play drop
-            the-man-No.005 the-man-No.005 smd-ln-play drop
+            the-man-No.001 the-man-No.001 smd-ln-beats? drop
+            the-man-No.001 the-man-No.002 smd-ln-beats? drop
+            the-man-No.001 the-man-No.003 smd-ln-beats? drop
+            the-man-No.001 the-man-No.004 smd-ln-beats? drop
+            the-man-No.001 the-man-No.005 smd-ln-beats? drop
+            the-man-No.002 the-man-No.001 smd-ln-beats? drop
+            the-man-No.002 the-man-No.002 smd-ln-beats? drop
+            the-man-No.002 the-man-No.003 smd-ln-beats? drop
+            the-man-No.002 the-man-No.004 smd-ln-beats? drop
+            the-man-No.002 the-man-No.005 smd-ln-beats? drop
+            the-man-No.003 the-man-No.001 smd-ln-beats? drop
+            the-man-No.003 the-man-No.002 smd-ln-beats? drop
+            the-man-No.003 the-man-No.003 smd-ln-beats? drop
+            the-man-No.003 the-man-No.004 smd-ln-beats? drop
+            the-man-No.003 the-man-No.005 smd-ln-beats? drop
+            the-man-No.004 the-man-No.001 smd-ln-beats? drop
+            the-man-No.004 the-man-No.002 smd-ln-beats? drop
+            the-man-No.004 the-man-No.003 smd-ln-beats? drop
+            the-man-No.004 the-man-No.004 smd-ln-beats? drop
+            the-man-No.004 the-man-No.005 smd-ln-beats? drop
+            the-man-No.005 the-man-No.001 smd-ln-beats? drop
+            the-man-No.005 the-man-No.002 smd-ln-beats? drop
+            the-man-No.005 the-man-No.003 smd-ln-beats? drop
+            the-man-No.005 the-man-No.004 smd-ln-beats? drop
+            the-man-No.005 the-man-No.005 smd-ln-beats? drop
         ] times
     ] benchmark
     [ 1.0e9 / ] [ ref get / ] bi
     "single spec multi-dispatch: %.6f　seconds (%.2f times slower)\n" printf
     ;
+
+USE: strings
+
+GENERIC: my-generic ( obj -- obj' )
+M: integer my-generic 1 + ;
+M: string my-generic "!" append ;
+: my-sd-program ( -- x ) 0 my-generic ;
+
+MGENERIC: my-mgeneric ( obj -- obj' )
+MM: my-mgeneric ( obj: integer -- obj' ) 1 + ;
+MM: my-mgeneric ( obj: string  -- obj' ) "!" append ;
+: my-md-program ( -- x ) 0 my-mgeneric ;
