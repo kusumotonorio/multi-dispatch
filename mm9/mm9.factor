@@ -481,12 +481,12 @@ M: invalid-math-method-parameter summary
         specializer {
             [ t [ array? not and ] reduce ]
             [ length 2 = ]
-            ! [ first2 = ]
         } 1&& [
             invalid-math-method-parameter
         ] unless
     ] when
-    effect specializer generic create-method dup save-location f set-last-word ;
+    effect specializer generic create-method
+    dup [ save-location ] [ set-last-word ] bi ;
 
 : scan-new-method ( -- method )
     scan-word scan-effect
